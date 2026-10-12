@@ -47,10 +47,15 @@ data = create_time_based_features(data, include_cyclic_features=True)
 
 print("Fetching and adding macro features (CPI & Unemployment)...")
 df_macro = get_macro_data()
-data = data.merge(df_macro, on='date', how='left')
+df_macro.set_index('date', inplace=True)
+
+if 'cpi' in df_macro.columns:
+    data['cpi'] = data['date'].map(df_macro['cpi'])
+if 'unemployment' in df_macro.columns:
+    data['unemployment'] = data['date'].map(df_macro['unemployment'])
 
 del df_macro
-import gc; gc.collect()
+gc.collect()
 
 print("\nChecking actual date format...")
 
