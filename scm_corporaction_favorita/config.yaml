@@ -1,0 +1,7 @@
+lgb_params:
+  n_estimators: 300
+  learning_rate: 0.05
+  num_leaves: 62
+  max_depth: 20
+  verbose: -1
+  n_jobs: 1

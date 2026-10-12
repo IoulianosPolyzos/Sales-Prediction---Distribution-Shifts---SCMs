@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 import importlib
+import gc
 
 # Import custom modules
 import data_join
@@ -26,11 +27,15 @@ from data_join import create_master_dataset
 
 #%%
 
+
 print("1. LOADING DATASET")
 
-# Load Favorita master dataset (using nrows for quick testing)
+
+# Load Favorita master dataset (full dataset, returned from Parquet)
 data = create_master_dataset()
+
 #%%
+
 
 print("2. FEATURE ENGINEERING")
 
@@ -47,14 +52,13 @@ if 'date' in data.columns:
     unique_dates = data['date'].astype(str).unique()[:5]
     print(f"Unique date samples: {unique_dates}")
 
-print("\nChecking existing columns before holiday features...")
-print(f"Total columns: {len(data.columns)}")
+print(f"\nTotal columns before holiday features: {len(data.columns)}")
 
-print("\nCreating holiday features...")
+print("Creating holiday features...")
 data = create_holiday_features(data)
 print(f"Total columns after holiday features: {len(data.columns)}")
 
-print("\nFetching and adding weather features...")
+print("Fetching and adding weather features...")
 data = add_weather_features(data)
 print(f"Total columns after weather features: {len(data.columns)}")
 
@@ -62,38 +66,39 @@ print("\nFinal data check:")
 print(f"Dataset shape: {data.shape}")
 print(f"Remaining NaN values: {data.isna().sum().sum()}")
 
-#%%
 print("\nFinal data types:")
 print(data.dtypes)
 
 #%%
 
+
 print("3. DATA CLEANING")
 
 
-print("\nNegatives before cleaning:")
+print("Negatives before cleaning:")
 neg_report = check_negatives(data)
 print(neg_report)
 
 neg_cols = ["unit_sales"]
-data = remove_negatives(data,neg_cols)
+data = remove_negatives(data, neg_cols)
 
 print("\nNegatives after cleaning:")
 neg_report = check_negatives(data)
 print(neg_report)
 
-print("\nZeros:")
+print("\nZeros Check:")
 zero_percent = check_zeros(data)
 print(zero_percent)
 
-#%%
 print("\nOutliers Check:")
 outliers_report = check_outliers(data)
 print(outliers_report)
 
 #%%
 
+
 print("4. FINALIZATION & TARGET EXTRACTION")
+
 
 micro_sales = ((data['unit_sales'] > 0) & (data['unit_sales'] < 1)).sum()
 small_sales = ((data['unit_sales'] >= 1) & (data['unit_sales'] < 10)).sum()
@@ -112,11 +117,6 @@ features, target = get_features(
 print(f"\nUsing {len(features)} features")
 print(f"Target: {target}")
 
-#%%
-print("\nDataset columns after feature engineering:")
-print(data.columns.tolist())
-
-#%%
 missing_features = [f for f in features if f not in data.columns]
 if missing_features:
     print(f"\nMissing features: {missing_features}")
@@ -128,76 +128,99 @@ else:
 
 #%%
 
-print("5. SPLIT ANALYSIS & PLOTTING")
+
+print("5. DISTRIBUTION SHIFTS (OOD SPLITS)")
 
 
-df_exp = data.copy()
+# Vectorized operations using np.where to prevent memory explosion (NO .apply, NO data.copy)
+print("Applying vectorized splits...")
 
-# --- 1. Store type split ---
-# Favorita has types A, B, C, D, E. Group A/B vs the rest
-df_exp['set_store_type'] = df_exp['store_type'].apply(lambda x: 'train' if x in ['A', 'B'] else 'test')
+# 1. Store type split: A & B vs rest
+data['set_store_type'] = np.where(data['store_type'].isin(['A', 'B']), 'train', 'test')
 
-# --- 2. Store number split ---
-# Favorita has 54 stores
-df_exp['set_store_number'] = df_exp['store_nbr'].apply(lambda x: 'train' if x <= 30 else 'test')
+# 2. Store number split: <= 30 vs rest
+data['set_store_number'] = np.where(data['store_nbr'] <= 30, 'train', 'test')
 
-# --- 3. Holiday split ---
-df_exp['set_holiday'] = df_exp['IsHoliday'].apply(lambda x: 'train' if x == 0 else 'test')
+# 3. Holiday split
+data['set_holiday'] = np.where(data['IsHoliday'] == 0, 'train', 'test')
 
-# --- 4. Christmas split ---
-df_exp['set_christmas'] = df_exp['Is_Christmas_Season'].apply(lambda x: 'train' if x == 0 else 'test')
+# 4. Christmas split (checking if column exists first based on previous functions)
+if 'Is_Christmas_Season' in data.columns:
+    data['set_christmas'] = np.where(data['Is_Christmas_Season'] == 0, 'train', 'test')
 
-# --- 5. Season split ---
-df_exp['set_season'] = df_exp['Season'].apply(lambda x: 'test' if x == 3 else 'train')
+# 5. Season split: Season 3 (Summer) vs rest
+if 'Season' in data.columns:
+    data['set_season'] = np.where(data['Season'] == 3, 'test', 'train')
 
-# --- 6. City split ---
+# 6. City split
 test_cities = ["Cuenca", "Manta", "Machala"]
-df_exp['set_city'] = df_exp['city'].apply(lambda x: 'test' if x in test_cities else 'train')
+data['set_city'] = np.where(data['city'].isin(test_cities), 'test', 'train')
 
-# --- 7. Weather split ---
-df_exp['set_weather'] = df_exp['weather_condition'].apply(lambda x: 'test' if x == 'clear' else 'train')
+# 7. Weather split
+if 'weather_condition' in data.columns:
+    data['set_weather'] = np.where(data['weather_condition'] == 'clear', 'test', 'train')
 
-
-print("\nSTORE TYPE SPLIT")
-df_exp['set'] = df_exp['set_store_type']
-plot_store_type_split(df_exp)
-
-print("\nSTORE NUMBER SPLIT")
-df_exp['set'] = df_exp['set_store_number']
-plot_store_number_split(df_exp)
-
-print("\nHOLIDAY SPLIT")
-df_exp['set'] = df_exp['set_holiday']
-plot_holiday_split(df_exp)
-
-print("\nCHRISTMAS SPLIT")
-df_exp['set'] = df_exp['set_christmas']
-plot_christmas_split(df_exp)
-
-print("\nSEASON SPLIT")
-df_exp['set'] = df_exp['set_season']
-plot_season_split(df_exp)
-
-print("\nCITY SPLIT")
-df_exp['set'] = df_exp['set_city']
-plot_city_split(df_exp)
-
-print("\nWEATHER SPLIT")
-df_exp['set'] = df_exp['set_weather']
-plot_weather_split(df_exp)
-
-print ("\nSales Over Time")
-plot_sales_over_time(data)
-
-print("\nCorrelation Heatmap")
-plot_correlation_heatmap(data)
-
-print("\nSales Distribution")
-plot_distribution(data, "unit_sales")
+print("Splits created successfully!")
 
 #%%
 
-print("6. SAVING FINAL DATASET")
+
+print("6. SPLIT ANALYSIS & PLOTTING")
+
+
+# Use a sample for plotting to avoid memory crash in matplotlib/seaborn
+print("Sampling 1,000,000 rows for safe visualization...")
+df_plot = data.sample(n=min(1_000_000, len(data)), random_state=42)
+
+print("\nSTORE TYPE SPLIT")
+df_plot['set'] = df_plot['set_store_type']
+plot_store_type_split(df_plot)
+
+print("\nSTORE NUMBER SPLIT")
+df_plot['set'] = df_plot['set_store_number']
+plot_store_number_split(df_plot)
+
+print("\nHOLIDAY SPLIT")
+df_plot['set'] = df_plot['set_holiday']
+plot_holiday_split(df_plot)
+
+if 'set_christmas' in df_plot.columns:
+    print("\nCHRISTMAS SPLIT")
+    df_plot['set'] = df_plot['set_christmas']
+    plot_christmas_split(df_plot)
+
+if 'set_season' in df_plot.columns:
+    print("\nSEASON SPLIT")
+    df_plot['set'] = df_plot['set_season']
+    plot_season_split(df_plot)
+
+print("\nCITY SPLIT")
+df_plot['set'] = df_plot['set_city']
+plot_city_split(df_plot)
+
+if 'set_weather' in df_plot.columns:
+    print("\nWEATHER SPLIT")
+    df_plot['set'] = df_plot['set_weather']
+    plot_weather_split(df_plot)
+
+print("\nSales Over Time")
+plot_sales_over_time(df_plot)
+
+print("\nCorrelation Heatmap")
+plot_correlation_heatmap(df_plot)
+
+print("\nSales Distribution")
+plot_distribution(df_plot, "unit_sales")
+
+# Free up memory explicitly after plotting
+del df_plot
+gc.collect()
+
+#%%
+
+
+print("7. SAVING FINAL DATASET")
+
 
 print(f"Final dataset shape before saving: {data.shape}")
 
@@ -207,11 +230,8 @@ if unnamed_columns:
     print(f"Removing useless columns: {unnamed_columns}")
     data = data.drop(columns=unnamed_columns)
 
-# Save to CSV
-output_file = "final_data_favorita.csv"
-data.to_csv(output_file, index=False, encoding="utf-8", float_format="%.4f")
-print(f"Success! Final dataset saved to {output_file}")
-
-data.to_parquet("final_data_favorita.parquet", index=False)
-print(f"Success! Final parquet-dataset saved")
-
+# Save ONLY to Parquet (CSV removed to prevent OOM)
+output_file = "final_data_favorita.parquet"
+print(f"Saving final dataset to {output_file}...")
+data.to_parquet(output_file, index=False)
+print("Success! Final parquet dataset saved.")
