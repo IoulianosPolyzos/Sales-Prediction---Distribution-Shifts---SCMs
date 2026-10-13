@@ -101,7 +101,9 @@ def create_master_dataset(nrows_train=None):
 
     print("Filling NaNs for transactions and onpromotion...")
     df['transactions'] = df['transactions'].fillna(0).astype('float32')
-    df['onpromotion'] = df['onpromotion'].fillna(False).astype('int8')
+
+    df['onpromotion'] = df['onpromotion'].replace({'True': 1, 'False': 0, True: 1, False: 0})
+    df['onpromotion'] = df['onpromotion'].fillna(0).astype('int8')
 
     print("5. Creating Geographical IsHoliday feature...")
     # Create a smaller DataFrame with unique dates and locations to save RAM
