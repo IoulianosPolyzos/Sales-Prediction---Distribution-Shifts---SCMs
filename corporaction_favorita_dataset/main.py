@@ -82,7 +82,14 @@ print("\nFinal data check:")
 print(f"Dataset shape: {data.shape}")
 print(f"Remaining NaN values: {data.isna().sum().sum()}")
 
-print("\nFinal data types:")
+print("\nOptimizing memory footprint (Downcasting)...")
+for col in data.select_dtypes(include=['float64']).columns:
+    data[col] = pd.to_numeric(data[col], downcast='float')
+for col in data.select_dtypes(include=['int64']).columns:
+    data[col] = pd.to_numeric(data[col], downcast='integer')
+gc.collect()
+
+print("\nFinal data types (After Optimization):")
 print(data.dtypes)
 
 #%%
@@ -91,25 +98,20 @@ print(data.dtypes)
 print("3. DATA CLEANING")
 
 
-print("Negatives before cleaning:")
-neg_report = check_negatives(data)
-print(neg_report)
+print("Checking negatives for 'unit_sales'...")
+neg_count = (data['unit_sales'] < 0).sum()
+print(f"Negatives found: {neg_count}")
 
-neg_cols = ["unit_sales"]
-data = remove_negatives(data, neg_cols)
+if neg_count > 0:
+    print("Removing negatives in-place...")
+    data.drop(data[data['unit_sales'] < 0].index, inplace=True)
+    gc.collect()
 
-print("\nNegatives after cleaning:")
-neg_report = check_negatives(data)
-print(neg_report)
+print("\nChecking zeros for 'unit_sales'...")
+zero_count = (data['unit_sales'] == 0).sum()
+print(f"Zeros found: {zero_count} ({(zero_count/len(data))*100:.2f}%)")
 
-print("\nZeros Check:")
-zero_percent = check_zeros(data)
-print(zero_percent)
-
-print("\nOutliers Check:")
-outliers_report = check_outliers(data)
-print(outliers_report)
-
+print("\nOutliers Check: Skipped for full dataset to prevent memory crash.")
 #%%
 
 

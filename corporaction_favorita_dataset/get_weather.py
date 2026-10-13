@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 import numpy as np
-
+import time
 # Exact coordinates for the 22 unique cities found in the Kaggle Favorita 'stores.csv'
 ECUADOR_CITIES = {
     'Quito': {'lat': -0.2298, 'lon': -78.5250},
@@ -113,9 +113,8 @@ def fetch_weather_for_city(city, start_date, end_date):
 def add_weather_features(df):
     """
     Identifies cities and dates in the master dataset, fetches their weather data,
-    and merges it back into the main DataFrame.
+    and maps it back into the main DataFrame efficiently.
     """
-    df = df.copy()
 
     # Ensure date column is datetime format
     if not pd.api.types.is_datetime64_any_dtype(df['date']):
@@ -133,20 +132,26 @@ def add_weather_features(df):
         if city in ECUADOR_CITIES:
             print(f" -> Downloading weather for: {city}")
             city_weather = fetch_weather_for_city(city, start_date, end_date)
+            time.sleep(2.5)  # Αποτρέπει το HTTP 429 Error
             if not city_weather.empty:
                 all_weather_data.append(city_weather)
         else:
-            print(f" -> WARNING: City '{city}' not found in coordinates list. Weather features will be NaN.")
+            print(f" -> WARNING: City '{city}' not found in coordinates list.")
 
     # Combine all city weather data into a single DataFrame
     weather_df = pd.concat(all_weather_data, ignore_index=True)
 
-    # Merge weather data into the main dataset on date and city
-    df = df.merge(weather_df, on=['date', 'city'], how='left')
-
-    # Forward and backward fill any potential missing values within the same city
+    weather_df.sort_values(by=['city', 'date'], inplace=True)
     weather_cols = ['temperature', 'humidity', 'precipitation', 'wind_speed', 'weather_condition']
-    df[weather_cols] = df.groupby('city')[weather_cols].ffill().bfill()
+    weather_df[weather_cols] = weather_df.groupby('city')[weather_cols].ffill().bfill()
+
+    print("Mapping weather data to main dataset...")
+    weather_df.set_index(['date', 'city'], inplace=True)
+
+    mi = pd.MultiIndex.from_arrays([df['date'], df['city']])
+
+    for col in weather_cols:
+        df[col] = mi.map(weather_df[col])
 
     return df
 
