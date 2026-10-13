@@ -126,23 +126,6 @@ print(f"Total rows: {total_rows}")
 print(f"Unit Sales between 0 and 1 (0, 1): {micro_sales} ({(micro_sales/total_rows)*100:.2f}%)")
 print(f"Unit Sales between 1 and 10 [1, 10): {small_sales} ({(small_sales/total_rows)*100:.2f}%)")
 
-# Extract final feature list
-features, target = get_features(
-    data=data,
-    include_enhanced_holiday=True,
-    include_cyclic_features=True
-)
-print(f"\nUsing {len(features)} features")
-print(f"Target: {target}")
-
-missing_features = [f for f in features if f not in data.columns]
-if missing_features:
-    print(f"\nMissing features: {missing_features}")
-    print("Available features:")
-    for col in data.columns:
-        print(f"   - {col}")
-else:
-    print(f"\nAll {len(features)} expected features are available in the dataset")
 
 #%%
 

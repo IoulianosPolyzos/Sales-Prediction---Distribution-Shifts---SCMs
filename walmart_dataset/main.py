@@ -120,26 +120,26 @@ total_rows = len(data)
 print(f"Total rows: {total_rows}")
 print(f"Weekly Sales that are between 0 and 1 (0, 1): {micro_sales} ({(micro_sales/total_rows)*100:.2f}%)")
 print(f"Weekly Sales that are between 1 and 10 [1, 10): {small_sales} ({(small_sales/total_rows)*100:.2f}%)")
-# Feature engineering
-features, target = get_features(
-    data=data,
-    include_enhanced_holiday=True,
-    include_cyclic_features=True
-)
-print(f"\n Using {len(features)} features")
-print(f"Target: {target}")
-#%%
-print("\nDataset columns after feature engineering:")
-print(data.columns.tolist())
-#%%
-missing_features = [f for f in features if f not in data.columns]
-if missing_features:
-    print(f"\nMissing features: {missing_features}")
-    print("Available features:")
-    for col in data.columns:
-        print(f"   - {col}")
-else:
-    print(f"\nAll {len(features)} features are available in the dataset")
+
+# features, target = get_features(
+#     data=data,
+#     include_enhanced_holiday=True,
+#     include_cyclic_features=True
+# )
+# print(f"\n Using {len(features)} features")
+# print(f"Target: {target}")
+# #%%
+# print("\nDataset columns after feature engineering:")
+# print(data.columns.tolist())
+# #%%
+# missing_features = [f for f in features if f not in data.columns]
+# if missing_features:
+#     print(f"\nMissing features: {missing_features}")
+#     print("Available features:")
+#     for col in data.columns:
+#         print(f"   - {col}")
+# else:
+#     print(f"\nAll {len(features)} features are available in the dataset")
 
 
 #%%

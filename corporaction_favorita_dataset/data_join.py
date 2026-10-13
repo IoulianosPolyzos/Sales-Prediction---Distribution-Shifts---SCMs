@@ -86,6 +86,8 @@ def create_master_dataset(nrows_train=None):
 
     # Fill missing values in oil prices (forward fill for weekends, backward fill for safety)
     oil = oil.sort_values('date')
+    all_dates = pd.DataFrame({'date': pd.date_range(start=train['date'].min(), end=train['date'].max())})
+    oil = all_dates.merge(oil, on='date', how='left')
     oil['dcoilwtico'] = oil['dcoilwtico'].ffill().bfill()
 
     # Remove transferred holidays (they were celebrated on a different day)
@@ -96,6 +98,10 @@ def create_master_dataset(nrows_train=None):
     df = df.merge(items, on='item_nbr', how='left')
     df = df.merge(transactions, on=['date', 'store_nbr'], how='left')
     df = df.merge(oil, on='date', how='left')
+
+    print("Filling NaNs for transactions and onpromotion...")
+    df['transactions'] = df['transactions'].fillna(0).astype('float32')
+    df['onpromotion'] = df['onpromotion'].fillna(False).astype('int8')
 
     print("5. Creating Geographical IsHoliday feature...")
     # Create a smaller DataFrame with unique dates and locations to save RAM

@@ -73,57 +73,59 @@ def add_cyclic_features(df):
     return df
 
 
-def get_features(data=None, include_enhanced_holiday=True, include_cyclic_features=True):
-
-    base_features = [
-        'store_nbr', 'item_nbr', 'onpromotion',
-        'store_type', 'cluster', 'family', 'class', 'perishable',
-        'dcoilwtico', 'earthquake_impact', 'transactions'
-    ]
-
-    weather_features = [
-        'temperature', 'humidity', 'precipitation', 'wind_speed', 'weather_condition'
-    ]
-
-    time_features = [
-        'DayOfWeek', 'Month', 'WeekOfYear', 'Quarter', 'Season',
-        'Year_Progress', 'Month_Progress', 'Is_Month_Start',
-        'Is_Month_End', 'Is_Christmas_Season', 'Is_Summer'
-    ]
-
-    cyclic_features = []
-    if include_cyclic_features:
-        cyclic_features = [
-            'DayOfWeek_sin', 'DayOfWeek_cos',
-            'Month_sin', 'Month_cos',
-            'WeekOfYear_sin', 'WeekOfYear_cos',
-            'Season_sin', 'Season_cos'
-        ]
-
-    holiday_features = ['IsHoliday']
-    if include_enhanced_holiday:
-        holiday_features.extend(['holiday_proximity', 'is_near_holiday', 'holiday_weight'])
-
-    all_features = (base_features + weather_features + time_features +
-                    cyclic_features + holiday_features)
-
-    all_features = list(dict.fromkeys(all_features))
-
-    if data is not None:
-        all_features = [f for f in all_features if f in data.columns]
-
-    target = 'unit_sales'
-
-    if data is not None:
-        print(f"\n Feature breakdown:")
-        print(f"   Base features: {len([f for f in all_features if f in base_features])}")
-        print(f"   Weather features: {len([f for f in all_features if f in weather_features])}")
-        print(f"   Time features: {len([f for f in all_features if f in time_features])}")
-        print(f"   Cyclic features: {len([f for f in all_features if f in cyclic_features])}")
-        print(f"   Holiday features: {len([f for f in all_features if f in holiday_features])}")
-        print(f"   Total features: {len(all_features)}")
-
-    return all_features, target
+# def get_features(data=None, include_enhanced_holiday=True, include_cyclic_features=True):
+#
+#     base_features = [
+#         'store_nbr', 'item_nbr', 'onpromotion',
+#         'store_type', 'cluster', 'family', 'class', 'perishable',
+#         'dcoilwtico', 'earthquake_impact', 'transactions'
+#     ]
+#
+#     weather_features = [
+#         'temperature', 'humidity', 'precipitation', 'wind_speed', 'weather_condition'
+#     ]
+#
+#     time_features = [
+#         'DayOfWeek', 'Month', 'WeekOfYear', 'Quarter', 'Season',
+#         'Year_Progress', 'Month_Progress', 'Is_Month_Start',
+#         'Is_Month_End', 'Is_Christmas_Season', 'Is_Summer'
+#     ]
+#
+#
+#
+#     cyclic_features = []
+#     if include_cyclic_features:
+#         cyclic_features = [
+#             'DayOfWeek_sin', 'DayOfWeek_cos',
+#             'Month_sin', 'Month_cos',
+#             'WeekOfYear_sin', 'WeekOfYear_cos',
+#             'Season_sin', 'Season_cos'
+#         ]
+#
+#     holiday_features = ['IsHoliday']
+#     if include_enhanced_holiday:
+#         holiday_features.extend(['holiday_proximity', 'is_near_holiday', 'holiday_weight'])
+#
+#     all_features = (base_features + weather_features + time_features +
+#                     cyclic_features + holiday_features)
+#
+#     all_features = list(dict.fromkeys(all_features))
+#
+#     if data is not None:
+#         all_features = [f for f in all_features if f in data.columns]
+#
+#     target = 'unit_sales'
+#
+#     if data is not None:
+#         print(f"\n Feature breakdown:")
+#         print(f"   Base features: {len([f for f in all_features if f in base_features])}")
+#         print(f"   Weather features: {len([f for f in all_features if f in weather_features])}")
+#         print(f"   Time features: {len([f for f in all_features if f in time_features])}")
+#         print(f"   Cyclic features: {len([f for f in all_features if f in cyclic_features])}")
+#         print(f"   Holiday features: {len([f for f in all_features if f in holiday_features])}")
+#         print(f"   Total features: {len(all_features)}")
+#
+#     return all_features, target
 
 
 

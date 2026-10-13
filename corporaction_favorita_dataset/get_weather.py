@@ -132,7 +132,7 @@ def add_weather_features(df):
         if city in ECUADOR_CITIES:
             print(f" -> Downloading weather for: {city}")
             city_weather = fetch_weather_for_city(city, start_date, end_date)
-            time.sleep(2.5)  # Αποτρέπει το HTTP 429 Error
+            time.sleep(8)
             if not city_weather.empty:
                 all_weather_data.append(city_weather)
         else:
