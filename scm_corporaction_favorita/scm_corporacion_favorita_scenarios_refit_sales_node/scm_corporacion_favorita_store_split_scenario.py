@@ -147,7 +147,7 @@ except FileNotFoundError:
         "ERROR: Data file '/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv' not found!")
     raise
 
-# PART 2: SPLIT DATA BY STORES (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY STORES 
 
 print("\n" + "=" * 70)
 print("PART 2: DOMAIN SHIFT SPLIT (STORES 1-30 vs 31-45)")

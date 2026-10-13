@@ -72,7 +72,7 @@ except FileNotFoundError:
     raise
 
 
-# PART 2: SPLIT DATA BY Christmas DOMAIN (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY Christmas DOMAIN 
 
 
 

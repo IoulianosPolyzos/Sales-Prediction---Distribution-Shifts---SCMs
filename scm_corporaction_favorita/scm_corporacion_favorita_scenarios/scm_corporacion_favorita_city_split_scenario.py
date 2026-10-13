@@ -132,7 +132,7 @@ except FileNotFoundError:
         "ERROR: Data file '/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv' not found!")
     raise
 
-# PART 2: SPLIT DATA BY CITIES (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY CITIES 
 
 print("PART 2: DOMAIN SHIFT SPLIT (TRAIN/VAL/TEST BY CITIES)")
 

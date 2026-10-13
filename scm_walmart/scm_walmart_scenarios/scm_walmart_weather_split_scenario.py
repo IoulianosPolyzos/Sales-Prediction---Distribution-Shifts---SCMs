@@ -125,15 +125,15 @@ try:
     df = df.fillna(0)  # Employing zero-imputation strategy as predetermined
 
     print(f"Dataset shape: {df.shape}")
-    print(f"Unique cities: {df['weather_condition'].nunique()}")
-    print(f"Cities: {sorted(df['weather_condition'].unique())}")
+    print(f"Unique Weather: {df['weather_condition'].nunique()}")
+    print(f"Weather: {sorted(df['weather_condition'].unique())}")
 
 except FileNotFoundError:
     print("ERROR: Data file '/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv' not found!")
     raise
 
 
-# PART 2: SPLIT DATA BY CITIES (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY Weather 
 
 print("PART 2: DOMAIN SHIFT SPLIT (TRAIN/TEST BY weather_conditions)")
 

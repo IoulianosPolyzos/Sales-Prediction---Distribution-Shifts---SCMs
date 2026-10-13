@@ -5,7 +5,7 @@ import time
 # ========================
 # PARQUET
 # ========================
-file_path_parquet = "final_data_favorita.parquet"
+file_path_parquet = "corporaction_favorita_dataset/final_data_favorita.parquet"
 
 start = time.perf_counter()
 df_parquet = pd.read_parquet(file_path_parquet)
@@ -20,7 +20,7 @@ print(f"Read time: {parquet_time:.4f} seconds")
 # ========================
 # CSV
 # ========================
-file_path_csv = "final_data_favorita.csv"
+file_path_csv = "walmart_dataset/final_data_walmart.csv"
 
 start = time.perf_counter()
 df_csv = pd.read_csv(file_path_csv)

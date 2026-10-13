@@ -142,7 +142,7 @@ except FileNotFoundError:
     raise
 
 
-# PART 2: SPLIT DATA BY HOLIDAY DOMAIN (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY HOLIDAY DOMAIN 
 
 print("\n" + "=" * 70)
 print("PART 2: DOMAIN SHIFT SPLIT (NORMAL vs HOLIDAY)")

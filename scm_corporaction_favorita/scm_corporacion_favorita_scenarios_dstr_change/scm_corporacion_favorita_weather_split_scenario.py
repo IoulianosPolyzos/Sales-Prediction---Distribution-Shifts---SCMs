@@ -117,7 +117,7 @@ except FileNotFoundError:
     raise
 
 
-# PART 2: SPLIT DATA BY CITIES (WITH VALIDATION SET)
+# PART 2: SPLIT DATA BY CITIES 
 
 
 
