@@ -5,7 +5,7 @@ import time
 # ========================
 # PARQUET
 # ========================
-file_path_parquet = "corporaction_favorita_dataset/final_data_favorita.parquet"
+file_path_parquet = "corporacion_favorita_dataset/final_data_favorita.parquet"
 
 start = time.perf_counter()
 df_parquet = pd.read_parquet(file_path_parquet)

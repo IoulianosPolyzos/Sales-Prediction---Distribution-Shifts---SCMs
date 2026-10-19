@@ -17,14 +17,15 @@ import yaml
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-with open("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart/config.yaml", "r") as f:
+with open("../config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
 RANDOM_SEED = 42
 
 try:
-    df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    df = pd.read_csv(CSV_PATH)
     df = df.drop(columns=["Date", "Season", "DayOfWeek", "Month", "WeekOfYear"], errors='ignore')
     df = df.fillna(0)
     print(f"Dataset shape: {df.shape}")

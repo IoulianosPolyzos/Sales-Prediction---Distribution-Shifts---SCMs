@@ -1,36 +1,45 @@
-#%%
+# %%
 #!/usr/bin/env python3
-
 
 import os
 import warnings
-import pickle
+import sys
 from pathlib import Path
-from datetime import datetime
+
+import numpy as np
+import yaml
 
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
-
-from lightgbm import LGBMRegressor, LGBMClassifier
+warnings.filterwarnings("ignore", category=UserWarning)
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from scm_walmart.custom_mape import *
 import pandas as pd
 import networkx as nx
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
-from dowhy.gcm.ml import SklearnClassificationModel, SklearnRegressionModel
-import numpy as np
-from matplotlib import pyplot as plt
-import seaborn as sns
-import yaml
-import sys
-sys.path.append("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart")
-from custom_mape import custom_retail_mape
-with open("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart/config.yaml", "r") as f:
+
+current_dir = Path(__file__).resolve().parent
+
+sys.path.append(str(current_dir.parents[1]))
+from utils_scm import (
+    save_checkpoint,
+    load_checkpoint,
+    get_all_descendants,
+    setup_mechanisms,
+    evaluate_sales_on_holdout
+)
+
+sys.path.append(str(current_dir.parent))
+from scm_walmart.scm_walmart_graph_utils import build_feature_graph
+
+with open("../config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
+
 
 
 CONFIG = {
@@ -41,85 +50,16 @@ CONFIG = {
     'checkpoint_dir': './checkpoints_christmas',
 
 }
-
 # Create checkpoint directory
 Path(CONFIG['checkpoint_dir']).mkdir(exist_ok=True)
-
-
-
-
-def save_checkpoint(scm, feature_graph, parents, metrics, stage_name="checkpoint"):
-    """
-    Save SCM model and metadata to disk.
-
-    Args:
-        scm: Fitted StructuralCausalModel
-        feature_graph: networkx DiGraph of causal structure
-        parents (list): Parent nodes of Weekly_Sales
-        metrics (dict): Performance metrics
-        stage_name (str): Name of checkpoint stage
-    """
-    try:
-        checkpoint_dir = Path(CONFIG['checkpoint_dir'])
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-        # Save SCM
-        scm_path = checkpoint_dir / f"scm_{stage_name}_{timestamp}.pkl"
-        with open(scm_path, "wb") as f:
-            pickle.dump(scm, f)
-
-        # Save metadata
-        metadata = {
-            "timestamp": timestamp,
-            "stage": stage_name,
-            "parents": parents,
-            "metrics": metrics,
-            "feature_count": len(parents),
-            "nodes": list(feature_graph.nodes()),
-            "edges": list(feature_graph.edges())
-        }
-        metadata_path = checkpoint_dir / f"metadata_{stage_name}_{timestamp}.pkl"
-        with open(metadata_path, "wb") as f:
-            pickle.dump(metadata, f)
-
-        print(f" Checkpoint saved: {scm_path.name}")
-        return str(scm_path), str(metadata_path)
-    except Exception as e:
-        print(f"ERROR: Failed to save checkpoint: {e}")
-        raise
-
-
-def load_checkpoint(scm_path, metadata_path):
-    """
-    Load SCM model and metadata from disk.
-
-    Args:
-        scm_path (str): Path to SCM pickle file
-        metadata_path (str): Path to metadata pickle file
-
-    Returns:
-        tuple: (scm_walmart, metadata)
-    """
-    try:
-        with open(scm_path, "rb") as f:
-            scm = pickle.load(f)
-
-        with open(metadata_path, "rb") as f:
-            metadata = pickle.load(f)
-
-        print(f" Checkpoint loaded from {Path(scm_path).name}")
-        return scm, metadata
-    except Exception as e:
-        print(f"ERROR: Failed to load checkpoint: {e}")
-        raise
-
 
 #%%
 print("PART 1: LOADING DATA & SETUP")
 
 
 try:
-    df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    df = pd.read_csv(CSV_PATH)
     df = df.drop(
         columns=["Date","Season","DayOfWeek","Month","WeekOfYear"],
         errors='ignore'
@@ -214,451 +154,144 @@ except Exception as e:
     raise
 
 #%%
-print("PART 4: CAUSAL GRAPH ANALYSIS")
+print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
-# Define semantically coherent groups of variables, representing higher-level causal concepts.
-# This abstraction allows reasoning at both macro (group) and micro (feature) levels.
-causal_groups = {
-    "Holidays": ["IsHoliday", "is_near_holiday", "Is_Christmas_Season", "holiday_proximity", "holiday_weight"],
-    "Date_Features": [
-        "Year", "Quarter",
-        "Year_Progress", "Month_Progress",
-        "Is_Month_Start", "Is_Month_End",
-        "Is_Summer",
-        "Month_sin", "Month_cos",
-        "DayOfWeek_sin", "DayOfWeek_cos",
-        "WeekOfYear_sin", "WeekOfYear_cos",],
-    "Season": ["Season_sin", "Season_cos"],
-    "City": ["city"],
-    "Economy": ["Fuel_Price", "CPI", "Unemployment"],
-    "Weather": [
-        "weather_condition", "Temperature",
-        "precipitation", "wind_speed", "humidity","temperature_min","temperature_max"
-    ],
-    "Store_Features": ["Store", "Type", "Size", "Dept"],
-    "MarkDowns": ["MarkDown1", "MarkDown2", "MarkDown3", "MarkDown4", "MarkDown5"],
-    "Sales": ["Weekly_Sales"]
-}
+feature_graph, causal_groups, macro_graph = build_feature_graph(train_df.columns)
 
-# Define directed causal relationships between variable groups.
-# These edges encode domain knowledge assumptions regarding data-generating mechanisms.
-causal_edges_groups = [
-    ("Date_Features", "Season"),
-    ("Date_Features", "Holidays"),
-    ("Date_Features", "Sales"),
-    ("Date_Features", "Economy"),
-    ("Season", "Weather"),
-    ("Season", "Sales"),
-    ("Holidays", "MarkDowns"),
-    ("Holidays", "Sales"),
-    ("MarkDowns", "Sales"),
-    ("City", "Weather"),
-    ("City", "Store_Features"),
-    ("City", "Economy"),
-    ("City", "Sales"),
-    ("Store_Features", "Sales"),
-    ("Store_Features", "MarkDowns"),
-    ("Weather", "Sales"),
-    ("Economy", "Sales")
+edges_to_remove = [
+    ('Month_sin', 'Weekly_Sales'),
+    ('Month_cos', 'Weekly_Sales'),
+    ('WeekOfYear_sin', 'Weekly_Sales'),
+    ('WeekOfYear_cos', 'Weekly_Sales'),
+    ('Is_Christmas_Season', 'Weekly_Sales'),
+    ('Year_Progress', 'Weekly_Sales'),
+    ('Month_Progress', 'Weekly_Sales')
 ]
 
-# Construct a macro-level Directed Acyclic Graph (DAG) over feature groups.
-# This representation supports interpretability and causal pathway analysis.
-macro_graph = nx.DiGraph()
-macro_graph.add_nodes_from(causal_groups.keys())
-macro_graph.add_edges_from(causal_edges_groups)
+for src, tgt in edges_to_remove:
+    if feature_graph.has_edge(src, tgt):
+        feature_graph.remove_edge(src, tgt)
 
-# Define a fixed layout to enhance visual interpretability of causal hierarchy.
-pos = {
-    "City": (0, 3), "Date_Features": (2, 3),
-    "Season": (4, 2.5), "Holidays": (6, 2.5),"Store_Features":(1,2),
-    "Economy": (2, 2), "Weather": (4.5, 1.5),
-    "MarkDowns": (6, 1), "Sales": (4, 0)
-}
-
-# Visualize the macro-level causal structure.
-# The layout reflects assumed temporal and structural ordering of variables.
-plt.figure(figsize=(13, 8))
-nx.draw(macro_graph, pos, with_labels=True, node_color='lightblue',
-        node_size=3500, edge_color='gray', font_size=11,
-        font_weight='bold', arrows=True, arrowsize=20)
-plt.title("Causal Graph — Graph Final", fontsize=16)
-plt.tight_layout()
-plt.show()
-
-def get_all_descendants(graph, source_node):
-    """
-    Compute the transitive closure of a given node in a directed graph.
-
-    From a causal inference perspective, this corresponds to identifying
-    all downstream variables potentially affected by interventions on the source node.
-    """
-    descendants = set()
-    to_visit = [source_node]
-    visited = set()
-
-    while to_visit:
-        node = to_visit.pop(0)
-        if node in visited:
-            continue
-        visited.add(node)
-
-        children = list(graph.successors(node))
-        descendants.update(children)
-        to_visit.extend(children)
-
-    return descendants
-
-
-# Identify all variables causally affected by "Holidays".
-# This corresponds to estimating the intervention scope do(Holidays = x).
 affected_groups = get_all_descendants(macro_graph, "Holidays")
-
-# Map affected groups to individual feature-level variables.
 affected_feature_nodes = []
 for group in affected_groups:
     affected_feature_nodes.extend(causal_groups[group])
 
-# Report direct and indirect causal influence.
 print(f"Direct children of Holidays: {set(macro_graph.successors('Holidays'))}")
 print(f"All affected groups (transitive): {affected_groups}")
-print(f"\nAffected feature nodes ({len(affected_feature_nodes)}):")
-for node in affected_feature_nodes:
-    print(f"  - {node}")
-
-
-
-
-
-print("PART 5: FEATURE-LEVEL CAUSAL GRAPH")
-
-
-# Initialize a fine-grained causal graph at the feature level.
-# Each node now corresponds to an individual observed variable.
-feature_graph = nx.DiGraph()
-
-# Add all feature nodes explicitly.
-for group_name, columns in causal_groups.items():
-    for col in columns:
-        feature_graph.add_node(col)
-
-# Expand group-level causal assumptions into feature-level dependencies.
-# This results in a fully connected bipartite mapping between groups.
-for source_group, target_group in causal_edges_groups:
-    for src_col in causal_groups[source_group]:
-        for tgt_col in causal_groups[target_group]:
-            feature_graph.add_edge(src_col, tgt_col)
-
-# Remove a specific edge to prevent an undesired direct causal shortcut,
-# ensuring that domain constraints (e.g., mediated effects) are respected.
-feature_graph.remove_edge('Is_Christmas_Season','Weekly_Sales')
-
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 
-
+# %%
 print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 
-
-# Initialize a Structural Causal Model (SCM) over the feature-level graph.
-# Each node will be associated with a structural equation.
 scm = gcm.StructuralCausalModel(feature_graph)
 
-
-def setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params):
-    """
-    Assign causal mechanisms to each node in the SCM.
-
-    - Root nodes are modeled via empirical distributions.
-    - Discrete variables are modeled using probabilistic classifiers.
-    - Continuous variables are modeled via additive noise models (ANMs).
-
-    This hybrid specification allows flexible approximation of complex,
-    non-linear causal relationships.
-    """
-    for node in feature_graph.nodes:
-        parents = list(feature_graph.predecessors(node))
-
-        # Exogenous variables: no parents → empirical distribution
-        if len(parents) == 0:
-            scm.set_causal_mechanism(node, gcm.EmpiricalDistribution())
-
-        # Classification setting for categorical/discrete variables
-        elif node in classifier_nodes:
-            scm.set_causal_mechanism(
-                node,
-                gcm.ClassifierFCM(
-                    SklearnClassificationModel(
-                        LGBMClassifier(**lgb_params)
-                    )
-                )
-            )
-
-        # Regression setting for continuous variables
-        else:
-            scm.set_causal_mechanism(
-                node,
-                gcm.AdditiveNoiseModel(
-                    SklearnRegressionModel(
-                        LGBMRegressor(**lgb_params)
-                    )
-                )
-            )
-
-
-# Fit the SCM using observational training data.
-# This step estimates all structural equations under the assumption of causal sufficiency.
 try:
     setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
-    print(" Mechanisms setup complete")
-
     print("Fitting SCM on training data (Normal Days)...")
     gcm.fit(scm, train_df)
 
-    print(" Initial fit complete")
-
+    scm_path_initial, metadata_path_initial = save_checkpoint(
+        scm, feature_graph,
+        sorted(list(feature_graph.predecessors("Weekly_Sales"))),
+        {'status': 'initial_fit_complete', 'train_set_size': len(train_df)},
+        CONFIG['checkpoint_dir'],
+        stage_name="initial_fit"
+    )
 except Exception as e:
     print(f"ERROR: Failed to fit SCM: {e}")
     raise
 
-# Persist the trained SCM for reproducibility and downstream analysis.
-# This checkpoint enables later counterfactual simulations and intervention queries.
-try:
-    scm_path_initial, metadata_path_initial = save_checkpoint(
-        scm,
-        feature_graph,
-        sorted(list(feature_graph.predecessors("Weekly_Sales"))),
-        {
-            'status': 'initial_fit_complete',
-            'train_set_size': len(train_df),
-            'train_domain': CONFIG['train_domain']
-        },
-        stage_name="initial_fit"
-    )
-except Exception as e:
-    print(f"ERROR: Could not save initial checkpoint: {e}")
-#%%
-
-
-
+# %%
 print("PART 7: SUPERVISED DOMAIN ADAPTATION (CONCEPT & COVARIATE SHIFT)")
 
-# Include Weekly_Sales because we have Concept Shift
-# Holiday patterns fundamentally change sales behavior
 ordered_nodes = list(nx.topological_sort(feature_graph))
-
-nodes_to_refit = [
-    n for n in ordered_nodes
-    if n in affected_feature_nodes
-]
-
-
-nodes_to_refit = list(nodes_to_refit)
+nodes_to_refit = [n for n in ordered_nodes if n in affected_feature_nodes]
 
 print(f"\nNodes to refit (Features + TARGET included - {len(nodes_to_refit)} nodes):")
 for node in sorted(nodes_to_refit):
     print(f"   {node}")
-
-print(f"\nAdapting mechanisms to holiday domain (learning new sales behavior during holidays)...")
 
 try:
     refit_count = 0
     for node in nodes_to_refit:
         try:
             print(f"  Refitting {node}...")
-            # Use ONLY ADAPTATION_DF for retraining (no leakage from holdout)
             fit_causal_model_of_target(scm, node, adaptation_df)
             refit_count += 1
         except Exception as e:
             print(f"WARNING: Failed to refit {node}: {e}")
 
-    print(f"\n Concept & Covariate shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+    print(f"\n Adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
 
     scm_path_adapted, metadata_path_adapted = save_checkpoint(
         scm, feature_graph,
         sorted(list(feature_graph.predecessors("Weekly_Sales"))),
-        {
-            'status': 'domain_adaptation_complete',
-            'nodes_refitted': refit_count,
-            'adaptation_domain': CONFIG['test_domain']
-        },
+        {'status': 'domain_adaptation_complete'},
+        CONFIG['checkpoint_dir'],
         stage_name="domain_adapted"
     )
 except Exception as e:
     print(f"ERROR: Domain adaptation failed: {e}")
     raise
 
-#%%
-
-
-
+# %%
 print("PART 8: EVALUATION ON STRICT HOLDOUT SET (AFTER ADAPTATION)")
 
-
 try:
-    # Sample from the HOLDOUT TEST DATA which the model has NEVER seen
     test_sample_size = min(CONFIG['test_sample_size'], len(holdout_test_df))
-    test_sample = holdout_test_df.sample(
-        n=test_sample_size,
-        random_state=CONFIG['random_seed']
-    ).reset_index(drop=True)
+    test_sample = holdout_test_df.sample(n=test_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
 
-    if len(test_sample) < CONFIG['test_sample_size']:
-        print(
-            f"WARNING: Test sample size ({len(test_sample)}) < "
-            f"configured size ({CONFIG['test_sample_size']}). "
-            f"Results may have higher variance."
-        )
-
-    print(f"Generating predictions on {len(test_sample)} holdout test samples...")
-
-    # Get causal mechanism and parents
     sales_mechanism = scm.causal_mechanism("Weekly_Sales")
     parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
 
-    # Generate predictions
     X_test = test_sample[parents].to_numpy()
-
-    train_features = parents
-    test_features = list(test_sample[parents].columns)
-
-    missing = set(train_features) - set(test_features)
-    extra = set(test_features) - set(train_features)
-
-    print("Missing:", missing)
-    print("Extra:", extra)
-
-    if list(test_sample[parents].columns) != parents:
-        print("️ Feature order mismatch!")
-    else:
-        print(" Feature order OK")
     test_predictions = sales_mechanism.prediction_model.predict(X_test).flatten()
 
-    # Calculate metrics
     mae = mean_absolute_error(test_sample['Weekly_Sales'].values, test_predictions)
     rmse = np.sqrt(mean_squared_error(test_sample['Weekly_Sales'].values, test_predictions))
-    mape = custom_retail_mape(test_sample['Weekly_Sales'].values,test_predictions)
+    mape = custom_retail_mape(test_sample['Weekly_Sales'].values, test_predictions)
     r2 = r2_score(test_sample['Weekly_Sales'].values, test_predictions)
 
     print(f"\n PREDICTION METRICS (Holdout Set - After Adaptation) ")
     print(f"MAE:  {mae:.2f}")
     print(f"RMSE: {rmse:.2f}")
-    print(f"MAPE: {mape:.2f}")
+    print(f"MAPE (Sklearn): {mape:.2f}")
     print(f"R²:   {r2:.4f}")
-
-    metrics_after_adaptation = {
-        'MAE': mae,
-        'RMSE': rmse,
-        'MAPE': mape,
-        'R2': r2
-    }
 
 except Exception as e:
     print(f"ERROR: Test evaluation failed: {e}")
     raise
 
-#%%
-
-
+# %%
 print("PART 9: FAIR COMPARISON - BASELINE vs ADAPTED ON SAME HOLDOUT SET")
 
-
-
-def evaluate_sales_on_holdout(model_scm, eval_df, label):
-    """Evaluate Weekly_Sales mechanism on the exact same holdout set."""
-    parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
-    sales_mechanism = model_scm.causal_mechanism("Weekly_Sales")
-
-    X_eval = eval_df[parents].to_numpy()
-    y_true = eval_df["Weekly_Sales"].to_numpy()
-    y_pred = sales_mechanism.prediction_model.predict(X_eval).flatten()
-
-    metrics = {
-        "MAE": mean_absolute_error(y_true, y_pred),
-        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
-        "MAPE": custom_retail_mape(y_true, y_pred),
-        "R2": r2_score(y_true, y_pred)
-    }
-
-    print(f"\n{label}")
-    print(f"MAE:  {metrics['MAE']:.2f}")
-    print(f"RMSE: {metrics['RMSE']:.2f}")
-    print(f"MAPE: {metrics['MAPE']:.2f}")
-    print(f"R²:   {metrics['R2']:.4f}")
-
-
-    return metrics
-
-
 try:
-    # 1. Load the PRE-ADAPTATION SCM from checkpoint
-    baseline_scm, baseline_metadata = load_checkpoint(scm_path_initial, metadata_path_initial)
-
-    # 2. Use the EXACT SAME HOLDOUT SET for both models
+    baseline_scm, _ = load_checkpoint(scm_path_initial, metadata_path_initial)
     comparison_df = holdout_test_df.reset_index(drop=True)
 
-    # 3. Evaluate baseline and adapted SCM on the same rows
-    baseline_metrics_holdout = evaluate_sales_on_holdout(
-        baseline_scm,
-        comparison_df,
-        "BASELINE SCM (trained on Normal Days only)"
+    baseline_metrics = evaluate_sales_on_holdout(
+        baseline_scm, feature_graph, comparison_df, "BASELINE SCM",target_col="Weekly_Sales"
+    )
+    adapted_metrics = evaluate_sales_on_holdout(
+        scm, feature_graph, comparison_df, "ADAPTED SCM",target_col="Weekly_Sales"
     )
 
-    adapted_metrics_holdout = evaluate_sales_on_holdout(
-        scm,
-        comparison_df,
-        "ADAPTED SCM (adapted to Holiday Days)"
-    )
-
-    # 4. Fair side-by-side comparison
-    
-    print("FAIR HOLDOUT COMPARISON (Holiday Days)")
-    
+    print("\nFAIR HOLDOUT COMPARISON (Christmas Days)")
     print(f"{'Metric':<10} {'Baseline':<15} {'Adapted':<15} {'Delta':<15}")
-    print("-" * 55)
+    
 
-    mae_delta = baseline_metrics_holdout["MAE"] - adapted_metrics_holdout["MAE"]
-    rmse_delta = baseline_metrics_holdout["RMSE"] - adapted_metrics_holdout["RMSE"]
-    mape_delta = baseline_metrics_holdout["MAPE"] - adapted_metrics_holdout["MAPE"]
-    r2_delta = adapted_metrics_holdout["R2"] - baseline_metrics_holdout["R2"]
+    mae_delta = baseline_metrics["MAE"] - adapted_metrics["MAE"]
+    rmse_delta = baseline_metrics["RMSE"] - adapted_metrics["RMSE"]
+    mape_delta = baseline_metrics["MAPE"] - adapted_metrics["MAPE"]
+    r2_delta = adapted_metrics["R2"] - baseline_metrics["R2"]
 
-    print(
-        f"{'MAE':<10} "
-        f"{baseline_metrics_holdout['MAE']:<15.4f} "
-        f"{adapted_metrics_holdout['MAE']:<15.4f} "
-        f"{mae_delta:+.4f}"
-    )
-
-    print(
-        f"{'MAPE':<10} "
-        f"{baseline_metrics_holdout['MAPE']:<15.4f} "
-        f"{adapted_metrics_holdout['MAPE']:<15.4f} "
-        f"{mape_delta:+.4f}"
-    )
-
-    print(
-        f"{'RMSE':<10} "
-        f"{baseline_metrics_holdout['RMSE']:<15.4f} "
-        f"{adapted_metrics_holdout['RMSE']:<15.4f} "
-        f"{rmse_delta:+.4f}"
-    )
-
-    print(
-        f"{'R2':<10} "
-        f"{baseline_metrics_holdout['R2']:<15.4f} "
-        f"{adapted_metrics_holdout['R2']:<15.4f} "
-        f"{r2_delta:+.4f}"
-    )
-
-    if adapted_metrics_holdout["R2"] > baseline_metrics_holdout["R2"] and \
-            adapted_metrics_holdout["RMSE"] < baseline_metrics_holdout["RMSE"]:
-        print("\n Adaptation improved performance on holiday days.")
-        print("  The model learned different sales patterns specific to holidays.")
-    else:
-        print("\n WARNING: Adaptation did not clearly improve performance on holiday days.")
-        print("  Holiday sales may follow similar patterns to normal days,")
-        print("  or the adaptation set may be insufficient for learning.")
+    print(f"{'MAE':<10} {baseline_metrics['MAE']:<15.4f} {adapted_metrics['MAE']:<15.4f} {mae_delta:+.4f}")
+    print(f"{'MAPE':<10} {baseline_metrics['MAPE']:<15.4f} {adapted_metrics['MAPE']:<15.4f} {mape_delta:+.4f}")
+    print(f"{'RMSE':<10} {baseline_metrics['RMSE']:<15.4f} {adapted_metrics['RMSE']:<15.4f} {rmse_delta:+.4f}")
+    print(f"{'R2':<10} {baseline_metrics['R2']:<15.4f} {adapted_metrics['R2']:<15.4f} {r2_delta:+.4f}")
 
 except Exception as e:
-    print(f"ERROR: Fair baseline vs adapted comparison failed: {e}")
+    print(f"ERROR: Fair comparison failed: {e}")
     raise

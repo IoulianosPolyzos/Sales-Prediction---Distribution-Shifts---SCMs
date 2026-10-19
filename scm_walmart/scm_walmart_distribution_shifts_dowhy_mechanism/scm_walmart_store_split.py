@@ -17,14 +17,15 @@ import yaml
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-with open("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart/config.yaml", "r") as f:
+with open("../config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
 RANDOM_SEED = 42
 
 try:
-    df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    df = pd.read_csv(CSV_PATH)
     df = df.drop(columns=["Date", "Season", "DayOfWeek", "Month", "WeekOfYear"], errors='ignore')
     df = df.fillna(0)
 
@@ -41,13 +42,13 @@ except FileNotFoundError:
 # ==========================================
 print("\nPART 2: DOMAIN SHIFT SPLIT (Train vs Test Stores)")
 
-train_stores = list(range(1, 31))  # Stores 1 to 30
-test_stores = list(range(31, 46))  # Stores 31 to 45
+source_stores = list(range(1, 31))  # Stores 1 to 30
+target_stores = list(range(31, 46))  # Stores 31 to 45
 
 # OLD DOMAIN: Train Stores
-old_data = df[df['Store'].isin(train_stores)].copy().reset_index(drop=True)
+old_data = df[df['Store'].isin(source_stores)].copy().reset_index(drop=True)
 # NEW DOMAIN: Test Stores
-new_data = df[df['Store'].isin(test_stores)].copy().reset_index(drop=True)
+new_data = df[df['Store'].isin(target_stores)].copy().reset_index(drop=True)
 
 print(f"Old Domain (Stores 1-30) shape: {old_data.shape}")
 print(f"New Domain (Stores 31-45) shape: {new_data.shape}")
@@ -170,7 +171,7 @@ for node, score in sorted_attributions:
 top_nodes = [x[0] for x in sorted_attributions[:10]]
 top_scores = [x[1] for x in sorted_attributions[:10]]
 
-split_name = "Train_vs_Test_Stores"
+split_name = "Train_vs_target_stores"
 
 plt.figure(figsize=(10, 6))
 plt.barh(top_nodes[::-1], top_scores[::-1], color='coral')

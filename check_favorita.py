@@ -1,6 +1,6 @@
 import pandas as pd
 
-PARQUET_PATH = r"../../corporaction_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 # Load ONLY the specific columns needed to save RAM
 cols_to_load = [

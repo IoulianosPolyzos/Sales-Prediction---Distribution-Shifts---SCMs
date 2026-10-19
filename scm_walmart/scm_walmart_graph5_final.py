@@ -35,7 +35,8 @@ from dowhy.gcm.ml import SklearnRegressionModel, SklearnClassificationModel
 
 # Load the dataset from disk.
 # The dataset represents a preprocessed version of the Walmart sales data.
-df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+df = pd.read_csv(CSV_PATH)
 
 # Drop redundant or already-encoded temporal variables.
 # These variables are removed either due to feature engineering replacements

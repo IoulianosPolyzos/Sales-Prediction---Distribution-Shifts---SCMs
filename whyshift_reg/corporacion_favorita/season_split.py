@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from disde_reg import *
 
-PARQUET_PATH = r"../../corporaction_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(">>> Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -116,7 +116,7 @@ x_shift_P = p2s - p2p
 x_shift_Q = q2q - s2q
 total_x_shift = x_shift_P + x_shift_Q
 
-print("-" * 50)
+
 print(f"Source MAE (p2p): {p2p:.4f}")
 print(f"Target MAE (q2q): {q2q:.4f}")
 print(f"p2s: expected Source Error on Sx (Reweighted Source Error)  : {p2s:.4f}")
@@ -130,7 +130,7 @@ print(f"X Shift P side ratio: {x_shift_P/total_degradation:.4f}")
 print(f"X Shift Q side ratio: {x_shift_Q/total_degradation:.4f}")
 print(f"X Shift Ratio : {total_x_shift/total_degradation:.4f}")
 print(f"Y|X Shift Ratio: {yx_shift/total_degradation:.4f}")
-print("-" * 50)
+
 
 from whyshift.region_analysis import shared_reweight
 

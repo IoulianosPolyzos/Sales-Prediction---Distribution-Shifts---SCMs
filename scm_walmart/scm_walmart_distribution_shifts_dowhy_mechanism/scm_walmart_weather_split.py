@@ -20,14 +20,15 @@ warnings.filterwarnings("ignore")
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-with open("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart/config.yaml", "r") as f:
+with open("../config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
 RANDOM_SEED = 42
 
 try:
-    df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    df = pd.read_csv(CSV_PATH)
     df = df.drop(columns=["Date", "Season", "DayOfWeek", "Month", "WeekOfYear"], errors='ignore')
     df = df.fillna(0)
 
@@ -41,16 +42,16 @@ except FileNotFoundError:
 # ==========================================
 print("\nPART 2: DOMAIN SHIFT SPLIT (Train vs Test Weather)")
 
-train_weather = ["Rain", "Snow", "Clouds"]
-test_weather = ["Clear"]
+source_weather = ["Rain", "Snow", "Clouds"]
+target_weather = ["Clear"]
 
 # OLD DOMAIN: Train Weather
-old_data = df[df['weather_condition'].isin(train_weather)].copy().reset_index(drop=True)
+old_data = df[df['weather_condition'].isin(source_weather)].copy().reset_index(drop=True)
 # NEW DOMAIN: Test Weather
-new_data = df[df['weather_condition'].isin(test_weather)].copy().reset_index(drop=True)
+new_data = df[df['weather_condition'].isin(target_weather)].copy().reset_index(drop=True)
 
-print(f"Old Domain (Weather {train_weather}) shape: {old_data.shape}")
-print(f"New Domain (Weather {test_weather}) shape: {new_data.shape}")
+print(f"Old Domain (Weather {source_weather}) shape: {old_data.shape}")
+print(f"New Domain (Weather {target_weather}) shape: {new_data.shape}")
 
 # ==========================================
 # 3. PREPROCESSING
@@ -175,7 +176,7 @@ for node, score in sorted_attributions:
 top_nodes = [x[0] for x in sorted_attributions[:10]]
 top_scores = [x[1] for x in sorted_attributions[:10]]
 
-split_name = "Train_vs_Test_Weather"
+split_name = "Train_vs_target_weather"
 
 plt.figure(figsize=(10, 6))
 plt.barh(top_nodes[::-1], top_scores[::-1], color='coral')

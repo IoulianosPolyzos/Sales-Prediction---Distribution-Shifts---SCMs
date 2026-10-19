@@ -17,14 +17,15 @@ import yaml
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-with open("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/scm_walmart/config.yaml", "r") as f:
+with open("../config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
 RANDOM_SEED = 42
 
 try:
-    df = pd.read_csv("/home/it2022091/Sales-Prediction---Distribution-Shifts---SCMs/walmart_dataset/final_data_walmart.csv")
+    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    df = pd.read_csv(CSV_PATH)
     df = df.drop(columns=["Date", "DayOfWeek", "Month", "WeekOfYear"], errors='ignore')
     df = df.fillna(0)
     print(f"Dataset shape: {df.shape}")
@@ -37,16 +38,16 @@ except FileNotFoundError:
 # ==========================================
 print("\nPART 2: DOMAIN SHIFT SPLIT (Train vs Test Seasons)")
 
-train_seasons = [1, 2, 4]
-test_seasons = [3]
+source_seasons = [1, 2, 4]
+target_seasons = [3]
 
 # OLD DOMAIN: Train Seasons
-old_data = df[df['Season'].isin(train_seasons)].copy().reset_index(drop=True)
+old_data = df[df['Season'].isin(source_seasons)].copy().reset_index(drop=True)
 # NEW DOMAIN: Test Seasons
-new_data = df[df['Season'].isin(test_seasons)].copy().reset_index(drop=True)
+new_data = df[df['Season'].isin(target_seasons)].copy().reset_index(drop=True)
 
-print(f"Old Domain (Seasons {train_seasons}) shape: {old_data.shape}")
-print(f"New Domain (Seasons {test_seasons}) shape: {new_data.shape}")
+print(f"Old Domain (Seasons {source_seasons}) shape: {old_data.shape}")
+print(f"New Domain (Seasons {target_seasons}) shape: {new_data.shape}")
 
 # ==========================================
 # 3. PREPROCESSING
@@ -155,7 +156,7 @@ for node, score in sorted_attributions:
 top_nodes = [x[0] for x in sorted_attributions[:10]]
 top_scores = [x[1] for x in sorted_attributions[:10]]
 
-split_name = "Train_vs_Test_Seasons"
+split_name = "Train_vs_target_seasons"
 
 plt.figure(figsize=(10, 6))
 plt.barh(top_nodes[::-1], top_scores[::-1], color='coral')
