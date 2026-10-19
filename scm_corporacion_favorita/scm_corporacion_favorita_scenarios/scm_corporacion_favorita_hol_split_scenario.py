@@ -1,47 +1,46 @@
-# %%
-# !/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os
 import warnings
 import sys
 from pathlib import Path
-import yaml
 
-import numpy as np
-import pandas as pd
-import networkx as nx
-from lightgbm import LGBMRegressor
-from matplotlib import pyplot as plt
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import numpy as np
+import yaml
+import pandas as pd
+import networkx as nx
+from lightgbm import LGBMRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-# --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
-current_dir = Path(__file__).resolve().parent
+from scm_walmart.custom_mape import custom_retail_mape
 
-
-sys.path.append(str(current_dir.parents[1]))
+sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
-    evaluate_sales_on_holdout,
     generate_synthetic_data,
     create_hybrid_dataset,
     run_whyshift_region_analysis
 )
 
+from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
-sys.path.append(str(current_dir.parent))
-from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
-
-# --- CONFIGURATION ---
-config_path = project_root / "scm_orporacion_favorita" / "config.yaml"
+config_path = project_root / "scm_walmart" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
@@ -191,7 +190,7 @@ scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
     setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
-    print("Fitting SCM on training data (Normal Days)...")
+    print("Fitting SCM on training data...")
     gcm.fit(scm, source_df)
     print("✓ Initial fit complete")
 except Exception as e:

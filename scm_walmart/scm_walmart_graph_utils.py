@@ -1,4 +1,8 @@
 import networkx as nx
+
+from scm_walmart.scm_walmart_scenarios.scm_walmart_hol_split_scenario import macro_graph
+
+
 def get_walmart_definitions():
     # This dictionary defines a hierarchical grouping of observed variables into
     # semantically meaningful latent constructs for the Walmart dataset.

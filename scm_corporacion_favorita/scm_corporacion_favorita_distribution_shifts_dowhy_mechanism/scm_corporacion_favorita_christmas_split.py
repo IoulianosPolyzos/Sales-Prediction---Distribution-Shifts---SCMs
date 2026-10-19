@@ -3,6 +3,16 @@
 
 import os
 import warnings
+import sys
+from pathlib import Path
+
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import pandas as pd
 import networkx as nx
 import dowhy.gcm as gcm
@@ -21,7 +31,7 @@ warnings.filterwarnings("ignore")
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-config_path = project_root / "scm_orporacion_favorita" / "config.yaml"
+config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 

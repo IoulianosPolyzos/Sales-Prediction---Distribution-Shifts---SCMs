@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# %%
+# %%
+# !/usr/bin/env python3
 
 import os
 import warnings
@@ -12,24 +14,24 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+import pandas as pd
+import yaml
+import numpy as np
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-import numpy as np
-import yaml
-import pandas as pd
-import networkx as nx
-from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from scm_walmart.custom_mape import *
+from lightgbm import LGBMRegressor
 import dowhy.gcm as gcm
-from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-from scm_walmart.custom_mape import custom_retail_mape
+# --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
+current_dir = Path(__file__).resolve().parent
 
-sys.path.append(str(project_root))
+# 1. utils_scm is located two levels up (root)
+sys.path.append(str(current_dir.parents[1]))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
@@ -38,8 +40,11 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
+# 2. scm_walmart_graph_utils is located one level up
+sys.path.append(str(current_dir.parent))
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
+# --- CONFIGURATION ---
 config_path = project_root / "scm_walmart" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
