@@ -1,4 +1,3 @@
-# %%
 #!/usr/bin/env python3
 
 import os
@@ -6,41 +5,46 @@ import warnings
 import sys
 from pathlib import Path
 
-import numpy as np
-import yaml
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from scm_walmart.custom_mape import *
+import numpy as np
+import yaml
 import pandas as pd
 import networkx as nx
+from lightgbm import LGBMRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-current_dir = Path(__file__).resolve().parent
+from scm_walmart.custom_mape import custom_retail_mape
 
-sys.path.append(str(current_dir.parents[1]))
+sys.path.append(str(project_root))
 from utils_scm import (
-    save_checkpoint,
-    load_checkpoint,
     get_all_descendants,
     setup_mechanisms,
-    evaluate_sales_on_holdout
+    generate_synthetic_data,
+    create_hybrid_dataset,
+    run_whyshift_region_analysis
 )
 
-sys.path.append(str(current_dir.parent))
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
-with open("../config.yaml", "r") as f:
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
-
-
 
 CONFIG = {
     'source_weather': ["Rain","Snow","Clouds"],
@@ -59,7 +63,7 @@ print("PART 1: LOADING DATA & SETUP")
 
 
 try:
-    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    CSV_PATH = project_root / "walmart_dataset" / "final_data_walmart.csv"
     df = pd.read_csv(CSV_PATH)
     df = df.drop(
         columns=["Date","Season","DayOfWeek","Month","WeekOfYear"],

@@ -1,32 +1,35 @@
-# %%
-# !/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os
 import warnings
 import sys
 from pathlib import Path
-import yaml
 
-import numpy as np
-import pandas as pd
-import networkx as nx
-from lightgbm import LGBMRegressor
-from matplotlib import pyplot as plt
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from scm_walmart.custom_mape import *
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
+import numpy as np
+import yaml
+import pandas as pd
+import networkx as nx
+from lightgbm import LGBMRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-# --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
-current_dir = Path(__file__).resolve().parent
+from scm_walmart.custom_mape import custom_retail_mape
 
-# 1. utils_scm (υποθέτουμε ότι βρίσκεται 2 επίπεδα πάνω, root directory)
-sys.path.append(str(current_dir.parents[1]))
+sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
@@ -35,18 +38,13 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
-
-sys.path.append(str(current_dir.parent))
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
-# --- CONFIGURATION ---
-try:
-    with open("../config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    lgb_params = config["lgb_params"]
-except FileNotFoundError:
-    print("Config not found, using default LGBM parameters.")
-    lgb_params = {'n_estimators': 100, 'random_state': 42}
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
 
 # Define the source (train) and target (test) distributions for the domain shift.
 # The shift is induced via a specific exogenous variable: 'weather_condition'.
@@ -64,7 +62,7 @@ print("PART 1: LOADING DATA & SETUP")
 # Load the empirical dataset and perform initial variable selection.
 # Temporal index variables are dropped to focus on purely cross-sectional causal relationships.
 try:
-    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    CSV_PATH = project_root / "walmart_dataset" / "final_data_walmart.csv"
     df = pd.read_csv(CSV_PATH)
     df = df.drop(
         columns=["Date","Season","DayOfWeek","Month","WeekOfYear"],

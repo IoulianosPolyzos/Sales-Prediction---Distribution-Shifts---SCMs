@@ -17,14 +17,15 @@ import yaml
 # 1. SETUP & CONFIGURATION
 # ==========================================
 print("PART 1: LOADING DATA & SETUP")
-with open("../config.yaml", "r") as f:
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
 RANDOM_SEED = 42
 
 try:
-    CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
+    CSV_PATH = project_root / "walmart_dataset" / "final_data_walmart.csv"
     df = pd.read_csv(CSV_PATH)
     df = df.drop(columns=["Date", "Season", "DayOfWeek", "Month", "WeekOfYear"], errors='ignore')
     df = df.fillna(0)

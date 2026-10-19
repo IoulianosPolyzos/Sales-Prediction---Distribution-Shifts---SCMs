@@ -41,7 +41,8 @@ sys.path.append(str(current_dir.parent))
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
 # --- CONFIGURATION ---
-with open("../config.yaml", "r") as f:
+config_path = project_root / "scm_orporacion_favorita" / "config.yaml"
+with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
