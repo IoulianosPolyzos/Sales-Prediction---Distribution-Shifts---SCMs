@@ -78,11 +78,11 @@ def setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params):
             scm.set_causal_mechanism(node, gcm.EmpiricalDistribution())
         elif node in classifier_nodes:
             scm.set_causal_mechanism(
-                node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(gcm.ml.LGBMClassifier(**lgb_params)))
+                node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(LGBMClassifier(**lgb_params)))
             )
         else:
             scm.set_causal_mechanism(
-                node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(gcm.ml.LGBMRegressor(**lgb_params)))
+                node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(LGBMRegressor(**lgb_params)))
             )
 
 
