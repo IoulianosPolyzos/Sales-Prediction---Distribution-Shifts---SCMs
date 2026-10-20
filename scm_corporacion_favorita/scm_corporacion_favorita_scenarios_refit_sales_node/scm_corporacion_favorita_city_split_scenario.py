@@ -157,8 +157,10 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
 # Surgical Removal for City Shift: enforce mediated pathways
-if feature_graph.has_edge('city', 'unit_sales'):
-    feature_graph.remove_edge('city', 'unit_sales')
+edges_to_remove = [
+    ('city', 'unit_sales'),
+    ('state', 'unit_sales')
+]
 
 # Identify causal descendants impacted by the intervention (City belongs to Location)
 affected_groups = get_all_descendants(macro_graph, "Location")
@@ -215,8 +217,8 @@ aligned_city = sampled_target['city'].values
 aligned_state = sampled_target['state'].values
 
 # 3. Create intervention functions
-def int_state(*args, **kwargs): return aligned_state
-def int_city(*args, **kwargs): return aligned_city
+def int_state(x): return np.resize(aligned_state, len(x))
+def int_city(x): return np.resize(aligned_city, len(x))
 
 # Joint intervention on the entire "Store Identity"
 interventions_dict = {

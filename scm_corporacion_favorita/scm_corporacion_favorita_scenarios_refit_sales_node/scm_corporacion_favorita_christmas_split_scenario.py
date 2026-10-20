@@ -232,13 +232,13 @@ aligned_christmas = sampled_target['Is_Christmas_Season'].values
 aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 
-def int_month_sin(*args, **kwargs): return aligned_month_sin
-def int_month_cos(*args, **kwargs): return aligned_month_cos
-def int_week_sin(*args, **kwargs): return aligned_week_sin
-def int_week_cos(*args, **kwargs): return aligned_week_cos
-def int_christmas(*args, **kwargs): return aligned_christmas
-def int_year_progress(*args, **kwargs): return aligned_year_progress
-def int_month_progress(*args, **kwargs): return aligned_month_progress
+def int_month_sin(x): return np.resize(aligned_month_sin, len(x))
+def int_month_cos(x): return np.resize(aligned_month_cos, len(x))
+def int_week_sin(x): return np.resize(aligned_week_sin, len(x))
+def int_week_cos(x): return np.resize(aligned_week_cos, len(x))
+def int_christmas(x): return np.resize(aligned_christmas, len(x))
+def int_year_progress(x): return np.resize(aligned_year_progress, len(x))
+def int_month_progress(x): return np.resize(aligned_month_progress, len(x))
 
 
 

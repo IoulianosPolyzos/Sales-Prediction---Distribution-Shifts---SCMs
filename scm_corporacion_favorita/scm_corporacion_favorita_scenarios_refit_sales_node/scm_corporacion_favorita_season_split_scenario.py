@@ -262,15 +262,15 @@ aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 aligned_is_summer = sampled_target['Is_Summer'].values
 
-def intervention_month_sin(*args, **kwargs): return aligned_month_sin
-def intervention_month_cos(*args, **kwargs): return aligned_month_cos
-def intervention_week_sin(*args, **kwargs):  return aligned_week_sin
-def intervention_week_cos(*args, **kwargs):  return aligned_week_cos
-def intervention_is_summer(*args, **kwargs):  return aligned_is_summer
-def intervention_season_sin(*args, **kwargs): return aligned_season_sin
-def intervention_season_cos(*args, **kwargs): return aligned_season_cos
-def intervention_year_progress(*args, **kwargs): return aligned_year_progress
-def intervention_month_progress(*args, **kwargs): return aligned_month_progress
+def intervention_month_sin(x): return np.resize(aligned_month_sin, len(x))
+def intervention_month_cos(x): return np.resize(aligned_month_cos, len(x))
+def intervention_week_sin(x):  return np.resize(aligned_week_sin, len(x))
+def intervention_week_cos(x):  return np.resize(aligned_week_cos, len(x))
+def intervention_is_summer(x):  return np.resize(aligned_is_summer, len(x))
+def intervention_season_sin(x): return np.resize(aligned_season_sin, len(x))
+def intervention_season_cos(x): return np.resize(aligned_season_cos, len(x))
+def intervention_year_progress(x): return np.resize(aligned_year_progress, len(x))
+def intervention_month_progress(x): return np.resize(aligned_month_progress, len(x))
 
 interventions_dict = {
     'Month_sin': intervention_month_sin,

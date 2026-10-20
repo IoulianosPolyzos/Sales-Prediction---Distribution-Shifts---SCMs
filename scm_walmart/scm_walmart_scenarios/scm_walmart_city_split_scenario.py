@@ -162,7 +162,7 @@ if feature_graph.has_edge('city', 'Weekly_Sales'):
     feature_graph.remove_edge('city', 'Weekly_Sales')
 
 # Identify causal descendants impacted by the intervention
-affected_groups = get_all_descendants(macro_graph, "city")
+affected_groups = get_all_descendants(macro_graph, "City")
 affected_feature_nodes = []
 for group in affected_groups:
     affected_feature_nodes.extend(causal_groups[group])
@@ -218,7 +218,7 @@ sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, ran
 aligned_city = sampled_target['city'].values
 
 # 3. Create intervention functions
-def int_city(*args, **kwargs): return aligned_city
+def int_city(x): return np.resize(aligned_city, len(x))
 
 # Joint intervention on the entire "Store Identity"
 interventions_dict = {

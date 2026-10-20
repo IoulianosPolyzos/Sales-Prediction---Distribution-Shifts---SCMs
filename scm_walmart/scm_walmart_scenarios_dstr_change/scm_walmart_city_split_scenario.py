@@ -182,7 +182,7 @@ sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=Tru
 aligned_city = sampled_target['city'].values
 
 # 3. Create intervention functions
-def int_city(*args, **kwargs): return aligned_city
+def int_city(x): return np.resize(aligned_city, len(x))
 
 # Joint intervention on the entire "Store Identity"
 interventions_dict = {

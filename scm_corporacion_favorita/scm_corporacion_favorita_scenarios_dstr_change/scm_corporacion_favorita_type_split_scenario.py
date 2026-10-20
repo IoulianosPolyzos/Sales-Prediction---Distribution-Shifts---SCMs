@@ -202,11 +202,11 @@ aligned_type = sampled_target['store_type'].values
 aligned_cluster = sampled_target['cluster'].values
 
 # 3. Create intervention functions
-def int_store(*args, **kwargs): return aligned_store
-def int_city(*args, **kwargs): return aligned_city
-def int_state(*args, **kwargs): return aligned_state
-def int_type(*args, **kwargs): return aligned_type
-def int_cluster(*args, **kwargs): return aligned_cluster
+def int_store(x): return np.resize(aligned_store, len(x))
+def int_city(x): return np.resize(aligned_city, len(x))
+def int_state(x): return np.resize(aligned_state, len(x))
+def int_type(x): return np.resize(aligned_type, len(x))
+def int_cluster(x): return np.resize(aligned_cluster, len(x))
 
 # Joint intervention on the entire "Store Identity"
 interventions_dict = {

@@ -188,7 +188,7 @@ if feature_graph.has_edge('city', 'Weekly_Sales'):
     feature_graph.remove_edge('city', 'Weekly_Sales')
 
 # Identify causal descendants impacted by the City domain shift
-affected_groups = get_all_descendants(macro_graph, "city")
+affected_groups = get_all_descendants(macro_graph, "City")
 affected_feature_nodes = []
 for group in affected_groups:
     affected_feature_nodes.extend(causal_groups[group])

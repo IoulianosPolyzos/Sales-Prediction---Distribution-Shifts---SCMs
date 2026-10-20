@@ -196,7 +196,7 @@ sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=Tru
 aligned_weather = sampled_target['weather_condition'].values
 
 # 3. Create intervention functions
-def int_weather(*args, **kwargs): return aligned_weather
+def int_weather(x): return np.resize(aligned_weather, len(x))
 
 interventions_dict = {
     'weather_condition': int_weather
