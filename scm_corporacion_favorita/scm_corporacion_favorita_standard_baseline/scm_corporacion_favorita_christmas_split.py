@@ -96,7 +96,7 @@ adaptation_df, holdout_test_df = train_test_split(
     random_state=CONFIG['random_seed']
 )
 
-adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+adaptation_df = adaptation_df.reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Train domain: {CONFIG['train_domain']}")

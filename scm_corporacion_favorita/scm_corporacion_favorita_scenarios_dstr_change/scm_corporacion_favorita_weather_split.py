@@ -86,9 +86,8 @@ source_df = df[df['weather_condition'].isin(source_weather)].copy().reset_index(
 target_df = df[df['weather_condition'].isin(target_weather)].copy().reset_index(drop=True)
 
 # 1. Subsample to avoid memory crashes during SCM fit
-source_df = source_df.sample(n=min(500000, len(source_df)), random_state=CONFIG['random_seed'])
-target_df = target_df.sample(n=min(50000, len(target_df)), random_state=CONFIG['random_seed'])
-
+source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed'])
+target_df = target_df.sample(n=min(50000000, len(target_df)), random_state=CONFIG['random_seed'])
 # 2. Split each domain to construct the pooled dataset
 # Source: 90% goes to train, 10% goes to test
 source_domain_train, source_domain_test = train_test_split(

@@ -88,8 +88,7 @@ target_df = df[df['Season'].isin(CONFIG['target_seasons'])].copy().reset_index(d
 
 # 1. Subsample to ensure SCM computational feasibility
 source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed'])
-target_df = target_df.sample(n=min(5000000, len(target_df)), random_state=CONFIG['random_seed'])
-
+target_df = target_df.sample(n=min(50000000, len(target_df)), random_state=CONFIG['random_seed'])
 # 2. Split each domain to construct the pooled dataset
 # Source: 90% goes to train, 10% goes to test
 source_domain_train, source_domain_test = train_test_split(

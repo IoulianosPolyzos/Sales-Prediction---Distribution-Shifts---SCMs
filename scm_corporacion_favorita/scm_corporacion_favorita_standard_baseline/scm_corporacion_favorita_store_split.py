@@ -100,7 +100,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 # Cap the adaptation set size to ensure rapid local refitting
-adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+adaptation_df = adaptation_df.reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Train domain (Stores 1-40) shape: {train_df.shape}")

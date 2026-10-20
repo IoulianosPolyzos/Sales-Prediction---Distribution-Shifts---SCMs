@@ -104,9 +104,9 @@ adaptation_df, holdout_test_df = train_test_split(
 adaptation_df = adaptation_df.reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
-print(f"Train domain: {CONFIG['source_domain']}")
+print(f"Train domain: {CONFIG['source_seasons']}")
 print(f"Train shape: {source_df.shape}")
-print(f"\nTest domain: {CONFIG['target_domain']}")
+print(f"\nTest domain: {CONFIG['target_seasons']}")
 print(f"Adaptation set shape (for refit): {adaptation_df.shape}")
 print(f"Holdout Test shape (for evaluation): {holdout_test_df.shape}")
 

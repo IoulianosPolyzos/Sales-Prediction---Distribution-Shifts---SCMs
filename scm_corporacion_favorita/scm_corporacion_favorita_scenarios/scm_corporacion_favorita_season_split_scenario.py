@@ -97,9 +97,8 @@ adaptation_df, holdout_test_df = train_test_split(
     random_state=CONFIG['random_seed']
 )
 
-# Cap adaptation set for faster refitting
-adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(
-    drop=True)
+
+adaptation_df = adaptation_df.reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Source domain (Seasons {CONFIG['source_seasons']}) shape: {source_df.shape}")

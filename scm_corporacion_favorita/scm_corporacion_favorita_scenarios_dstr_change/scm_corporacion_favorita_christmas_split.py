@@ -83,8 +83,7 @@ target_df = df[df['Is_Christmas_Season'] == 1].copy().reset_index(drop=True)
 
 # 1. Subsample to avoid memory crashes during SCM fit
 source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed'])
-target_df = target_df.sample(n=min(5000000, len(target_df)), random_state=CONFIG['random_seed'])
-
+target_df = target_df.sample(n=min(50000000, len(target_df)), random_state=CONFIG['random_seed'])
 # 2. Split each domain
 source_domain_train, source_domain_test = train_test_split(
     source_df, test_size=0.1, random_state=CONFIG['random_seed']
