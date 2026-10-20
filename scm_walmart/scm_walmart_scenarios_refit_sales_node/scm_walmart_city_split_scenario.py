@@ -25,6 +25,7 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
+import itertools
 import yaml
 import pandas as pd
 import networkx as nx
@@ -222,13 +223,11 @@ num_synthetic_samples = len(target_df)
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-# 2. Extract the aligned physical properties of the store
 aligned_city = sampled_target['city'].values
 
-# 3. Create intervention functions
-def int_city(x): return np.resize(aligned_city, len(x))
+iter_city = itertools.cycle(aligned_city)
 
-# Joint intervention on the entire "Store Identity"
+def int_city(x): return next(iter_city)
 interventions_dict = {
     'city': int_city
 }

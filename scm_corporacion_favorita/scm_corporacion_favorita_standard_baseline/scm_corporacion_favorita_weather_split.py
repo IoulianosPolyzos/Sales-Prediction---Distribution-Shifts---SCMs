@@ -27,7 +27,7 @@ from sklearn.model_selection import train_test_split
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-from scm_walmart.custom_mape import custom_retail_mape
+
 
 sys.path.append(str(project_root))
 from utils_scm import (
@@ -38,9 +38,9 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
-from scm_walmart.scm_walmart_graph_utils import build_feature_graph
+from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
-config_path = project_root / "scm_walmart" / "config.yaml"
+config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
@@ -101,7 +101,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 # Cap the adaptation set size to ensure rapid refitting
-adaptation_df = adaptation_df.sample(n=min(20000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Train weather conditions: {source_weather}")

@@ -16,6 +16,7 @@ if str(project_root) not in sys.path:
 import yaml
 
 import numpy as np
+import itertools
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
@@ -224,13 +225,12 @@ num_synthetic_samples = len(target_df)
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-# 2. Extract the aligned physical properties of the store
 aligned_weather = sampled_target['weather_condition'].values
 
-# 3. Create intervention functions
-def int_weather(x): return np.resize(aligned_weather, len(x))
+iter_weather = itertools.cycle(aligned_weather)
 
-# Joint intervention on the entire "Store Identity"
+def int_weather(x): return next(iter_weather)
+
 interventions_dict = {
     'weather_condition': int_weather
 }

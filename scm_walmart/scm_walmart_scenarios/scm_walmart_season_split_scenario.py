@@ -17,6 +17,7 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
+import itertools
 import yaml
 import pandas as pd
 import networkx as nx
@@ -262,7 +263,6 @@ num_synthetic_samples = len(target_df)
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-
 aligned_month_sin = sampled_target['Month_sin'].values
 aligned_month_cos = sampled_target['Month_cos'].values
 
@@ -275,16 +275,25 @@ aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 aligned_is_summer = sampled_target['Is_Summer'].values
 
-def intervention_month_sin(x): return np.resize(aligned_month_sin, len(x))
-def intervention_month_cos(x): return np.resize(aligned_month_cos, len(x))
-def intervention_week_sin(x):  return np.resize(aligned_week_sin, len(x))
-def intervention_week_cos(x):  return np.resize(aligned_week_cos, len(x))
-def intervention_is_summer(x):  return np.resize(aligned_is_summer, len(x))
-def intervention_season_sin(x): return np.resize(aligned_season_sin, len(x))
-def intervention_season_cos(x): return np.resize(aligned_season_cos, len(x))
-def intervention_year_progress(x): return np.resize(aligned_year_progress, len(x))
-def intervention_month_progress(x): return np.resize(aligned_month_progress, len(x))
+iter_month_sin = itertools.cycle(aligned_month_sin)
+iter_month_cos = itertools.cycle(aligned_month_cos)
+iter_week_sin = itertools.cycle(aligned_week_sin) if aligned_week_sin is not None else None
+iter_week_cos = itertools.cycle(aligned_week_cos) if aligned_week_cos is not None else None
+iter_season_sin = itertools.cycle(aligned_season_sin)
+iter_season_cos = itertools.cycle(aligned_season_cos)
+iter_year_progress = itertools.cycle(aligned_year_progress)
+iter_month_progress = itertools.cycle(aligned_month_progress)
+iter_is_summer = itertools.cycle(aligned_is_summer)
 
+def intervention_month_sin(x): return next(iter_month_sin)
+def intervention_month_cos(x): return next(iter_month_cos)
+def intervention_week_sin(x): return next(iter_week_sin) if iter_week_sin is not None else None
+def intervention_week_cos(x): return next(iter_week_cos) if iter_week_cos is not None else None
+def intervention_season_sin(x): return next(iter_season_sin)
+def intervention_season_cos(x): return next(iter_season_cos)
+def intervention_year_progress(x): return next(iter_year_progress)
+def intervention_month_progress(x): return next(iter_month_progress)
+def intervention_is_summer(x): return next(iter_is_summer)
 interventions_dict = {
     'Month_sin': intervention_month_sin,
     'Month_cos': intervention_month_cos,

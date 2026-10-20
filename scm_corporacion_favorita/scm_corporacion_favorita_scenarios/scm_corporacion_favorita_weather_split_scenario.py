@@ -17,17 +17,18 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
+import itertools
 import yaml
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-from scm_walmart.custom_mape import custom_retail_mape
+
 
 sys.path.append(str(project_root))
 from utils_scm import (
@@ -38,9 +39,9 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
-from scm_walmart.scm_walmart_graph_utils import build_feature_graph
+from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
-config_path = project_root / "scm_walmart" / "config.yaml"
+config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
@@ -218,13 +219,12 @@ num_synthetic_samples = len(target_df)
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-# 2. Extract the aligned physical properties of the store
 aligned_weather = sampled_target['weather_condition'].values
 
-# 3. Create intervention functions
-def int_weather(x): return np.resize(aligned_weather, len(x))
+iter_weather = itertools.cycle(aligned_weather)
 
-# Joint intervention on the entire "Store Identity"
+def int_weather(x): return next(iter_weather)
+
 interventions_dict = {
     'weather_condition': int_weather
 }

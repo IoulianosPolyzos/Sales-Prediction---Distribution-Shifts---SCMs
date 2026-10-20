@@ -17,6 +17,7 @@ if str(project_root) not in sys.path:
 import pandas as pd
 import yaml
 import numpy as np
+import itertools
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -186,19 +187,22 @@ num_synthetic_samples = len(target_df)
 # 1. Sample real rows from Target Domain to maintain physical reality
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-# 2. Extract the aligned physical properties of the store
+# 2. Extract the aligned physical properties of the store type
 aligned_store = sampled_target['Store'].values
 aligned_city = sampled_target['city'].values
 aligned_type = sampled_target['Type'].values
 aligned_size = sampled_target['Size'].values
 
-# 3. Create intervention functions
-def int_store(x): return np.resize(aligned_store, len(x))
-def int_city(x): return np.resize(aligned_city, len(x))
-def int_type(x): return np.resize(aligned_type, len(x))
-def int_size(x): return np.resize(aligned_size, len(x))
+iter_store = itertools.cycle(aligned_store)
+iter_city = itertools.cycle(aligned_city)
+iter_type = itertools.cycle(aligned_type)
+iter_size = itertools.cycle(aligned_size)
 
-# Joint intervention on the entire "Store Identity"
+# 3. Create intervention functions with next()
+def int_store(x): return next(iter_store)
+def int_city(x): return next(iter_city)
+def int_type(x): return next(iter_type)
+def int_size(x): return next(iter_size)
 interventions_dict = {
     'Store': int_store,
     'city': int_city,

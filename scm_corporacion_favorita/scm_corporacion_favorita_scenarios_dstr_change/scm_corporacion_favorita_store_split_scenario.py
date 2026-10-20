@@ -17,17 +17,18 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
+import itertools
 import yaml
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-from scm_walmart.custom_mape import custom_retail_mape
+
 
 sys.path.append(str(project_root))
 from utils_scm import (
@@ -38,9 +39,9 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
-from scm_walmart.scm_walmart_graph_utils import build_feature_graph
+from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
-config_path = project_root / "scm_walmart" / "config.yaml"
+config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
@@ -200,14 +201,19 @@ aligned_state = sampled_target['state'].values
 aligned_type = sampled_target['store_type'].values
 aligned_cluster = sampled_target['cluster'].values
 
-# 3. Create intervention functions
-def int_store(x): return np.resize(aligned_store, len(x))
-def int_city(x): return np.resize(aligned_city, len(x))
-def int_state(x): return np.resize(aligned_state, len(x))
-def int_type(x): return np.resize(aligned_type, len(x))
-def int_cluster(x): return np.resize(aligned_cluster, len(x))
+iter_store = itertools.cycle(aligned_store)
+iter_city = itertools.cycle(aligned_city)
+iter_state = itertools.cycle(aligned_state)
+iter_type = itertools.cycle(aligned_type)
+iter_cluster = itertools.cycle(aligned_cluster)
 
-# Joint intervention on the entire "Store Identity"
+# 3. Create intervention functions with next()
+def int_store(x): return next(iter_store)
+def int_city(x): return next(iter_city)
+def int_state(x): return next(iter_state)
+def int_type(x): return next(iter_type)
+def int_cluster(x): return next(iter_cluster)
+
 interventions_dict = {
     'store_nbr': int_store,
     'city': int_city,

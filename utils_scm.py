@@ -246,9 +246,9 @@ def run_whyshift_region_analysis(df_source, df_target, target_col, categorical_n
     print(
         f"[{source_name} Model] MAE on {target_name} (OOD) Test: {mean_absolute_error(y_target_test, source_model.predict(X_target_test)):.4f}")
     print(
-        f"[{target_name} Model] MAE on {source_name} Test: {mean_absolute_error(y_source_test, target_model.predict(X_source_test)):.4f}")
+        f"[{target_name} Model] MAE on {source_name} (ID) Test: {mean_absolute_error(y_source_test, target_model.predict(X_source_test)):.4f}")
     print(
-        f"[{target_name} Model] MAE on {target_name} Test: {mean_absolute_error(y_target_test, target_model.predict(X_target_test)):.4f}")
+        f"[{target_name} Model] MAE on {target_name} (OOD) Test: {mean_absolute_error(y_target_test, target_model.predict(X_target_test)):.4f}")
 
     # Risk Region Tree
     region_tree = DecisionTreeRegressor(max_depth=4, min_samples_leaf=100, min_weight_fraction_leaf=0.05)

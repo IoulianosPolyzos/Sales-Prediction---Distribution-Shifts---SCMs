@@ -17,17 +17,18 @@ warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
 import numpy as np
+import itertools
 import yaml
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
-from scm_walmart.custom_mape import custom_retail_mape
+
 
 sys.path.append(str(project_root))
 from utils_scm import (
@@ -38,9 +39,9 @@ from utils_scm import (
     run_whyshift_region_analysis
 )
 
-from scm_walmart.scm_walmart_graph_utils import build_feature_graph
+from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
-config_path = project_root / "scm_walmart" / "config.yaml"
+config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
@@ -98,7 +99,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 # Cap adaptation set for faster refitting
-adaptation_df = adaptation_df.sample(n=min(20000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(
     drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
@@ -232,13 +233,23 @@ aligned_christmas = sampled_target['Is_Christmas_Season'].values
 aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 
-def int_month_sin(x): return np.resize(aligned_month_sin, len(x))
-def int_month_cos(x): return np.resize(aligned_month_cos, len(x))
-def int_week_sin(x): return np.resize(aligned_week_sin, len(x))
-def int_week_cos(x): return np.resize(aligned_week_cos, len(x))
-def int_christmas(x): return np.resize(aligned_christmas, len(x))
-def int_year_progress(x): return np.resize(aligned_year_progress, len(x))
-def int_month_progress(x): return np.resize(aligned_month_progress, len(x))
+
+iter_month_sin = itertools.cycle(aligned_month_sin)
+iter_month_cos = itertools.cycle(aligned_month_cos)
+iter_week_sin = itertools.cycle(aligned_week_sin)
+iter_week_cos = itertools.cycle(aligned_week_cos)
+iter_christmas = itertools.cycle(aligned_christmas)
+iter_year_progress = itertools.cycle(aligned_year_progress)
+iter_month_progress = itertools.cycle(aligned_month_progress)
+
+
+def int_month_sin(x): return next(iter_month_sin)
+def int_month_cos(x): return next(iter_month_cos)
+def int_week_sin(x): return next(iter_week_sin)
+def int_week_cos(x): return next(iter_week_cos)
+def int_christmas(x): return next(iter_christmas)
+def int_year_progress(x): return next(iter_year_progress)
+def int_month_progress(x): return next(iter_month_progress)
 
 
 

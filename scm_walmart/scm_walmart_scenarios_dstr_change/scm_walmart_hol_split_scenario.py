@@ -15,6 +15,7 @@ if str(project_root) not in sys.path:
 
 import yaml
 import numpy as np
+import itertools
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -196,14 +197,21 @@ aligned_holidays = sampled_target['IsHoliday'].values
 aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 
-def int_month_sin(x): return np.resize(aligned_month_sin, len(x))
-def int_month_cos(x): return np.resize(aligned_month_cos, len(x))
-def int_week_sin(x): return np.resize(aligned_week_sin, len(x))
-def int_week_cos(x): return np.resize(aligned_week_cos, len(x))
-def int_holidays(x): return np.resize(aligned_holidays, len(x))
-def int_year_progress(x): return np.resize(aligned_year_progress, len(x))
-def int_month_progress(x): return np.resize(aligned_month_progress, len(x))
+iter_month_sin = itertools.cycle(aligned_month_sin)
+iter_month_cos = itertools.cycle(aligned_month_cos)
+iter_week_sin = itertools.cycle(aligned_week_sin)
+iter_week_cos = itertools.cycle(aligned_week_cos)
+iter_holidays = itertools.cycle(aligned_holidays)
+iter_year_progress = itertools.cycle(aligned_year_progress)
+iter_month_progress = itertools.cycle(aligned_month_progress)
 
+def int_month_sin(x): return next(iter_month_sin)
+def int_month_cos(x): return next(iter_month_cos)
+def int_week_sin(x): return next(iter_week_sin)
+def int_week_cos(x): return next(iter_week_cos)
+def int_holidays(x): return next(iter_holidays)
+def int_year_progress(x): return next(iter_year_progress)
+def int_month_progress(x): return next(iter_month_progress)
 
 
 interventions_dict = {
