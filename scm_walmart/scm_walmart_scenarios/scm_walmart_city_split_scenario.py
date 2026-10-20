@@ -168,7 +168,7 @@ affected_feature_nodes = []
 for group in affected_groups:
     affected_feature_nodes.extend(causal_groups[group])
 
-print(f"Direct children of City: {set(macro_graph.successors('city'))}")
+print(f"Direct children of City: {set(macro_graph.successors('City'))}")
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 # %%
