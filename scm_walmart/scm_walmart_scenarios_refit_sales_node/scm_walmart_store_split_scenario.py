@@ -17,6 +17,7 @@ if str(project_root) not in sys.path:
 import numpy as np
 import itertools
 import pandas as pd
+import yaml
 import networkx as nx
 from lightgbm import LGBMRegressor
 from matplotlib import pyplot as plt
