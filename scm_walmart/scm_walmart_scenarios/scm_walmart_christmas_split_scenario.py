@@ -86,8 +86,8 @@ print("PART 2: DOMAIN SHIFT SPLIT (NORMAL vs CHRISTMAS SEASON)")
 # Ensure Is_Christmas_Season is numeric (0 or 1)
 df['Is_Christmas_Season'] = df['Is_Christmas_Season'].astype(int)
 
-source_df = df[df['Is_Christmas_Season'] == 0].copy().reset_index(drop=True)
-target_df = df[df['Is_Christmas_Season'] == 1].copy().reset_index(drop=True)
+source_df = df[df['Is_Christmas_Season'] == 0].sample(n=5000000, random_state=42).copy().reset_index(drop=True)
+target_df = df[df['Is_Christmas_Season'] == 1].sample(n=5000000, random_state=42).copy().reset_index(drop=True)
 
 
 

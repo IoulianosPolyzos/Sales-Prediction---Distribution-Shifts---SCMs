@@ -7,10 +7,13 @@ import lightgbm as lgbm
 
 import sys
 import os
+
+from whyshift_reg.disde_reg import degradation_decomp_regression
+
 # Add the parent directory to the path to find disde_reg
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from disde_reg import *
+
 
 PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
