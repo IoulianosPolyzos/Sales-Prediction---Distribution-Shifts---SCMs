@@ -99,7 +99,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 
-adaptation_df = adaptation_df.reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed'])
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Source shape: {source_df.shape}")
@@ -223,7 +223,7 @@ except Exception as e:
 print("\nExecuting Intervention: Changing days to Christmas (Is_Christmas_Season = 1)...")
 print("\nExecuting Aligned Intervention: Changing days to Christmas (Is_Christmas_Season = 1) with correct Dates...")
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(1000000, len(target_df))
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
