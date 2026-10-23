@@ -21,7 +21,7 @@ import yaml
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 
 import dowhy.gcm as gcm
@@ -33,9 +33,9 @@ sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
-    generate_synthetic_data,
-    create_hybrid_dataset,
-    run_whyshift_region_analysis
+    save_checkpoint,
+    load_checkpoint,
+    evaluate_sales_on_holdout
 )
 
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
@@ -86,7 +86,7 @@ train_df = df[df['city'].isin(train_cities)].copy().reset_index(drop=True)
 test_df_full = df[df['city'].isin(test_cities)].copy().reset_index(drop=True)
 
 # Subsample training data to ensure SCM computational feasibility
-train_df = train_df.sample(n=min(5000000, len(train_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+train_df = train_df.sample(n=min(1000000, len(train_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 
 # Split target domain into Adaptation Set (for refit) and Holdout Set (for evaluation)
 adaptation_df, holdout_test_df = train_test_split(

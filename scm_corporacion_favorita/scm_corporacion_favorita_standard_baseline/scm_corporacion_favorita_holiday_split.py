@@ -33,9 +33,9 @@ sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
-    generate_synthetic_data,
-    create_hybrid_dataset,
-    run_whyshift_region_analysis
+    save_checkpoint,
+    load_checkpoint,
+    evaluate_sales_on_holdout
 )
 
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
@@ -93,6 +93,7 @@ print("PART 2: DOMAIN SHIFT SPLIT (NORMAL vs HOLIDAY)")
 df['IsHoliday'] = df['IsHoliday'].astype(int)
 
 train_df = df[df['IsHoliday'] == 0].copy().reset_index(drop=True)
+train_df = train_df.sample(n=min(1000000, len(train_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 test_df_full = df[df['IsHoliday'] == 1].copy().reset_index(drop=True)
 
 # Split target domain into Adaptation Set (for refit) and Holdout Set (for evaluation)

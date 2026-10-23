@@ -33,11 +33,10 @@ sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
-    generate_synthetic_data,
-    create_hybrid_dataset,
-    run_whyshift_region_analysis
+    save_checkpoint,
+    load_checkpoint,
+    evaluate_sales_on_holdout
 )
-
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
 
 config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
@@ -91,7 +90,7 @@ train_df = df[df['Season'].isin(source_seasons)].copy().reset_index(drop=True)
 test_df_full = df[df['Season'].isin(target_seasons)].copy().reset_index(drop=True)
 
 # Sample the train set to avoid memory errors (SCMs are computationally heavy)
-train_df = train_df.sample(n=min(5000000, len(train_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+train_df = train_df.sample(n=min(1000000, len(train_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 
 # Split Test Data into ADAPTATION SET (for refit) and HOLDOUT SET (for evaluation)
 # Keeping test_size=0.90 as explicitly requested

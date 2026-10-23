@@ -35,6 +35,7 @@ from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
     generate_synthetic_data,
+    evaluate_sales_on_holdout,
     create_hybrid_dataset,
     run_whyshift_region_analysis
 )
@@ -86,8 +87,8 @@ source_df = df[df['weather_condition'].isin(CONFIG['source_weather'])].copy().re
 target_df = df[df['weather_condition'].isin(CONFIG['target_weather'])].copy().reset_index(drop=True)
 
 # 1. Subsample to ensure SCM computational feasibility
-source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed'])
-target_df = target_df.sample(n=min(50000000, len(target_df)), random_state=CONFIG['random_seed'])
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 # 2. Split each domain to construct the pooled dataset
 # Source: 90% goes to train, 10% goes to test
 source_domain_train, source_domain_test = train_test_split(
@@ -188,7 +189,7 @@ except Exception as e:
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(1000000, len(target_df))
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 

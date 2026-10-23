@@ -89,8 +89,7 @@ source_df = df[df['Season'].isin(CONFIG['source_seasons'])].copy().reset_index(d
 target_df = df[df['Season'].isin(CONFIG['target_seasons'])].copy().reset_index(drop=True)
 
 # Subsample source data to ensure SCM computational feasibility
-source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
-
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 # Split target domain into Adaptation Set (for refit) and Holdout Set (for evaluation)
 adaptation_df, holdout_test_df = train_test_split(
     target_df,
@@ -99,7 +98,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 
-adaptation_df = adaptation_df.reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Source domain (Seasons {CONFIG['source_seasons']}) shape: {source_df.shape}")
@@ -244,7 +243,7 @@ print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 #    from the Target Domain, we inject perfectly synchronized time-coordinates.
 #    The SCM is thus forced to generate counterfactuals around 100% realistic,
 #    chronologically coherent dates.
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(1000000, len(target_df))
 
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])

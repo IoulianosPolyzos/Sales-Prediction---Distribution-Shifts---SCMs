@@ -87,8 +87,8 @@ source_df = df[df['Season'].isin(CONFIG['source_seasons'])].copy().reset_index(d
 target_df = df[df['Season'].isin(CONFIG['target_seasons'])].copy().reset_index(drop=True)
 
 # 1. Subsample to ensure SCM computational feasibility
-source_df = source_df.sample(n=min(50000000, len(source_df)), random_state=CONFIG['random_seed'])
-target_df = target_df.sample(n=min(50000000, len(target_df)), random_state=CONFIG['random_seed'])
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 # 2. Split each domain to construct the pooled dataset
 # Source: 90% goes to train, 10% goes to test
 source_domain_train, source_domain_test = train_test_split(
@@ -197,7 +197,7 @@ print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 #    The SCM is thus forced to generate counterfactuals around 100% realistic,
 #    chronologically coherent dates.
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(1000000, len(target_df))
 
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
