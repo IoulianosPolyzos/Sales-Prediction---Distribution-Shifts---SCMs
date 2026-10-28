@@ -292,7 +292,9 @@ interventions_dict = {
     'Month_Progress': intervention_month_progress
 }
 print("\nGenerating synthetic data with paired Temporal & Season(sin/cos) Interventions...")
-clip_cols = ['unit_sales', 'MarkDown1', 'MarkDown2', 'MarkDown3', 'MarkDown4', 'MarkDown5']
+clip_cols = ['unit_sales']
+if 'transactions' in source_df.columns:
+    clip_cols.append('transactions')
 
 synthetic_dataset = generate_synthetic_data(
     scm=scm,

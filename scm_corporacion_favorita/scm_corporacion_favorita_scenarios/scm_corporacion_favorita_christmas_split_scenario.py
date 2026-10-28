@@ -91,7 +91,7 @@ target_df = df[df['Is_Christmas_Season'] == 1].copy().reset_index(drop=True)
 # Subsample source data to ensure SCM computational feasibility
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 
-# Split target domain into Adaptation and Holdout sets (10% / 90%)
+# Split target domain into Adaptation and Holdout sets
 adaptation_df, holdout_test_df = train_test_split(
     target_df,
     test_size=0.20,  # 80% adaptation
