@@ -162,6 +162,9 @@ edges_to_remove = [
     ('city', 'unit_sales'),
     ('state', 'unit_sales')
 ]
+for src, tgt in edges_to_remove:
+    if feature_graph.has_edge(src, tgt):
+        feature_graph.remove_edge(src, tgt)
 
 # Identify causal descendants impacted by the intervention (City belongs to Location)
 affected_groups = get_all_descendants(macro_graph, "Location")

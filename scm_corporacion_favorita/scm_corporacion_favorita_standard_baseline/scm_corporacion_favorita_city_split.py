@@ -96,7 +96,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 # Cap adaptation set size for rapid local refitting
-adaptation_df = adaptation_df.reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Train cities: {train_cities}")
@@ -160,9 +160,13 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(train_df.columns)
 
 # SURGICAL REMOVAL FOR CITY SHIFT EXPERIMENT
-# Remove direct causal shortcut to enforce mediated pathways through Store_Metadata / Store_Activity
-if feature_graph.has_edge('city', 'unit_sales'):
-    feature_graph.remove_edge('city', 'unit_sales')
+edges_to_remove = [
+    ('city', 'unit_sales'),
+    ('state', 'unit_sales')
+]
+for src, tgt in edges_to_remove:
+    if feature_graph.has_edge(src, tgt):
+        feature_graph.remove_edge(src, tgt)
 
 # Identify causal descendants impacted by the Location domain shift
 affected_groups = get_all_descendants(macro_graph, "Location")

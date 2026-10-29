@@ -21,7 +21,7 @@ import yaml
 import pandas as pd
 import networkx as nx
 from lightgbm import LGBMRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 
 import dowhy.gcm as gcm
@@ -100,7 +100,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 # Cap the adaptation set size to ensure rapid local refitting
-adaptation_df = adaptation_df.reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Train domain (Stores 1-40) shape: {train_df.shape}")
@@ -168,7 +168,6 @@ edges_to_remove = [
     ('store_nbr','unit_sales'),
     ('cluster', 'unit_sales')
 ]
-
 
 for src, tgt in edges_to_remove:
     if feature_graph.has_edge(src, tgt):
