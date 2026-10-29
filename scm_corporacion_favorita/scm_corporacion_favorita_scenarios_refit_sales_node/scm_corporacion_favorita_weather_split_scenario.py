@@ -48,8 +48,8 @@ with open(config_path, "r") as f:
 lgb_params = config["lgb_params"]
 
 CONFIG = {
-    'source_weather': ["Rain", "Snow", "Clouds"],
-    'target_weather': ["Clear"],
+    'source_weather': ["rain", "snow", "clouds"],
+    'target_weather': ["clear"],
     'random_seed': 42
 }
 
