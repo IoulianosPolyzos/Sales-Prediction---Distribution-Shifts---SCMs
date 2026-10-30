@@ -105,9 +105,9 @@ print(f"Adaptation set shape (for refit): {adaptation_df.shape}")
 print(f"Holdout Test shape (for evaluation): {holdout_test_df.shape}")
 
 # Verify exact domain separation
-assert not source_df['store_type'].isin(CONFIG['target_weather']).any(), "Train set contains Target Weather Conditions!"
-assert adaptation_df['store_type'].isin(CONFIG['target_weather']).all(), "Adaptation set contains Source Weather Conditions!"
-assert holdout_test_df['store_type'].isin(CONFIG['target_weather']).all(), "Holdout set contains Source Weather Conditions!"
+assert not source_df['weather_condition'].isin(CONFIG['target_weather']).any(), "Train set contains Target Weather Conditions!"
+assert adaptation_df['weather_condition'].isin(CONFIG['target_weather']).all(), "Adaptation set contains Source Weather Conditions!"
+assert holdout_test_df['weather_condition'].isin(CONFIG['target_weather']).all(), "Holdout set contains Source Weather Conditions!"
 print("✓ Domain separation verified")
 
 # %%
