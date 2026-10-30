@@ -88,7 +88,7 @@ source_df = df[df['store_nbr'].isin(CONFIG['source_stores'])].copy().reset_index
 target_df = df[df['store_nbr'].isin(CONFIG['target_stores'])].copy().reset_index(drop=True)
 
 # Subsample source data to ensure SCM computational feasibility
-source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+source_df = source_df.sample(n=min(500000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 # Split target domain into Adaptation and Holdout sets (10% / 90%)
 adaptation_df, holdout_test_df = train_test_split(
     target_df,
@@ -97,7 +97,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 
-adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(100000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Source domain (Stores 1-40) shape: {source_df.shape}")

@@ -89,7 +89,7 @@ source_df = df[df['Is_Christmas_Season'] == 0].copy().reset_index(drop=True)
 target_df = df[df['Is_Christmas_Season'] == 1].copy().reset_index(drop=True)
 
 # Subsample source data to ensure SCM computational feasibility
-source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+source_df = source_df.sample(n=min(500000, len(source_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 # Split target domain into Adaptation and Holdout sets (10% / 90%)
 adaptation_df, holdout_test_df = train_test_split(
     target_df,
@@ -98,7 +98,7 @@ adaptation_df, holdout_test_df = train_test_split(
 )
 
 
-adaptation_df = adaptation_df.sample(n=min(500000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+adaptation_df = adaptation_df.sample(n=min(100000, len(adaptation_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
 holdout_test_df = holdout_test_df.reset_index(drop=True)
 
 print(f"Source shape: {source_df.shape}")
