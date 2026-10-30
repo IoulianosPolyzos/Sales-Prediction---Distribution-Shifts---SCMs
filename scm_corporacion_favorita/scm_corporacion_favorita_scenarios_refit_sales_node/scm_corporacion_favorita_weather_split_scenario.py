@@ -210,7 +210,7 @@ except Exception as e:
 # %%
 print("PART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
-num_synthetic_samples = min(1000000, len(target_df))
+num_synthetic_samples = min(500000, len(target_df))
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 

@@ -243,7 +243,7 @@ print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 #    from the Target Domain, we inject perfectly synchronized time-coordinates.
 #    The SCM is thus forced to generate counterfactuals around 100% realistic,
 #    chronologically coherent dates.
-num_synthetic_samples = min(1000000, len(target_df))
+num_synthetic_samples = min(500000, len(target_df))
 
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
