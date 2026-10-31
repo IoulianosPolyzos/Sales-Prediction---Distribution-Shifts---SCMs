@@ -292,7 +292,9 @@ interventions_dict = {
     'Month_Progress': intervention_month_progress
 }
 print("\nGenerating synthetic data with paired Temporal & Season(sin/cos) Interventions...")
-clip_cols = ['unit_sales', 'MarkDown1', 'MarkDown2', 'MarkDown3', 'MarkDown4', 'MarkDown5']
+clip_cols = ['unit_sales']
+if 'transactions' in source_df.columns:
+    clip_cols.append('transactions')
 
 synthetic_dataset = generate_synthetic_data(
     scm=scm,
@@ -363,16 +365,6 @@ hybrid_dataset = create_hybrid_dataset(
     classifier_nodes=classifier_nodes,
     target_col='unit_sales'
 )
-print(f"✓ Hybrid Dataset Shape: {hybrid_dataset.shape}")
-print("\nHybrid Dataset (Source + Synthetic Target)...")
-
-train_aligned = source_df[synthetic_dataset.columns].copy()
-
-hybrid_dataset = pd.concat([train_aligned, synthetic_dataset], ignore_index=True)
-
-
-print(f"Hybrid Dataset Shape: {hybrid_dataset.shape} (Real: {len(train_aligned)}, Synthetic: {len(synthetic_dataset)})")
-
 X_hybrid = hybrid_dataset.drop(columns=['unit_sales'])
 y_hybrid = hybrid_dataset['unit_sales']
 
@@ -393,7 +385,7 @@ X_test = holdout_test_df.drop(columns=['unit_sales'])
 X_test = X_test[X_hybrid.columns]
 for col in classifier_nodes:
     if col in X_test.columns:
-        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_syn[col].cat.categories)
+        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 y_test = holdout_test_df['unit_sales']
 
 y_pred = ml_model_hbr.predict(X_test)

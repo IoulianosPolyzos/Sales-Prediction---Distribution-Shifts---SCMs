@@ -357,7 +357,7 @@ X_test = holdout_test_df.drop(columns=['unit_sales'])
 X_test = X_test[X_hybrid.columns]
 for col in classifier_nodes:
     if col in X_test.columns:
-        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_syn[col].cat.categories)
+        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 y_test = holdout_test_df['unit_sales']
 
 y_pred = ml_model_hbr.predict(X_test)

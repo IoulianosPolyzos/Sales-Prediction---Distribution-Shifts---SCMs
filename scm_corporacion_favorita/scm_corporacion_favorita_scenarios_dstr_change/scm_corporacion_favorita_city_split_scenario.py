@@ -272,13 +272,13 @@ hybrid_dataset = create_hybrid_dataset(
     classifier_nodes=classifier_nodes,
     target_col='unit_sales'
 )
-print(f"✓ Hybrid Dataset Shape: {hybrid_dataset.shape}")
-print("\nHybrid Dataset (Mixed Train + Synthetic Target)...")
-
-
 X_hybrid = hybrid_dataset.drop(columns=['unit_sales'])
 y_hybrid = hybrid_dataset['unit_sales']
-
+X_test = test_df.drop(columns=['unit_sales'])
+X_test = X_test[X_hybrid.columns]
+for col in classifier_nodes:
+    if col in X_test.columns:
+        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 ml_model_hbr.fit(X_hybrid, y_hybrid)
