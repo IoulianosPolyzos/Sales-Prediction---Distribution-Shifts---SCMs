@@ -260,3 +260,42 @@ def run_whyshift_region_analysis(df_source, df_target, target_col, categorical_n
     plt.savefig(plot_filename)
     plt.close()  # Free memory
     print(f"Saved region analysis plot to: {plot_filename}")
+
+
+from sklearn.tree import _tree
+import numpy as np
+
+
+def extract_high_shift_rules(tree, feature_names, threshold_percentile=80):
+    tree_ = tree.tree_
+    feature_name = [
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        for i in tree_.feature
+    ]
+
+    paths = []
+
+    def recurse(node, path):
+        if tree_.feature[node] != _tree.TREE_UNDEFINED:
+            name = feature_name[node]
+            threshold = tree_.threshold[node]
+
+            path.append(f"`{name}` <= {threshold:.4f}")
+            recurse(tree_.children_left[node], path)
+            path.pop()
+
+            path.append(f"`{name}` > {threshold:.4f}")
+            recurse(tree_.children_right[node], path)
+            path.pop()
+        else:
+            paths.append((path[:], tree_.value[node][0][0], tree_.n_node_samples[node]))
+
+    recurse(0, [])
+
+    values = [p[1] for p in paths]
+    threshold_val = np.percentile(values, threshold_percentile)
+
+    high_shift_rules = [p for p in paths if p[1] >= threshold_val]
+    high_shift_rules.sort(key=lambda x: x[1], reverse=True)
+
+    return high_shift_rules
