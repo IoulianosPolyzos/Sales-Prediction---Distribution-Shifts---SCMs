@@ -41,7 +41,8 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis,
+    extract_high_shift_rules
 )
 
 sys.path.append(str(current_dir.parent))
@@ -64,59 +65,6 @@ CONFIG = {
     'target_domain': 'Holiday Days (Is_Christmas_Season=1)',
     'random_seed': 42,
 }
-
-
-# ==============================================================================
-# NEW FUNCTION: EXTRACT HIGH SHIFT RULES FROM DECISION TREE
-# ==============================================================================
-def extract_high_shift_rules(tree_model, feature_names, threshold_percentile=80):
-    """
-    Extracts rule paths from the decision tree leaves that exhibit
-    the highest Y|X shift (prediction disagreement).
-    """
-    tree_ = tree_model.tree_
-    if tree_.node_count == 1:
-        # If the tree didn't split at all
-        return [([], tree_.value[0][0][0], tree_.n_node_samples[0])]
-
-    feature_name = [
-        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
-        for i in tree_.feature
-    ]
-
-    paths = []
-
-    def recurse(node, path):
-        if tree_.feature[node] != _tree.TREE_UNDEFINED:
-            name = feature_name[node]
-            threshold = tree_.threshold[node]
-
-            # Left child (<= threshold)
-            path.append(f"`{name}` <= {threshold:.4f}")
-            recurse(tree_.children_left[node], path)
-            path.pop()
-
-            # Right child (> threshold)
-            path.append(f"`{name}` > {threshold:.4f}")
-            recurse(tree_.children_right[node], path)
-            path.pop()
-        else:
-            # Reached a leaf node: Save (Rule, Shift Value, Number of Samples)
-            paths.append((path[:], tree_.value[node][0][0], tree_.n_node_samples[node]))
-
-    recurse(0, [])
-
-    # Filter for the top X% of shift
-    values = [p[1] for p in paths]
-    threshold_val = np.percentile(values, threshold_percentile)
-
-    high_shift_rules = [p for p in paths if p[1] >= threshold_val]
-    # Sort from highest shift to lowest
-    high_shift_rules.sort(key=lambda x: x[1], reverse=True)
-
-    return high_shift_rules
-
-
 # %%
 
 print("PART 1: LOADING DATA & SETUP")

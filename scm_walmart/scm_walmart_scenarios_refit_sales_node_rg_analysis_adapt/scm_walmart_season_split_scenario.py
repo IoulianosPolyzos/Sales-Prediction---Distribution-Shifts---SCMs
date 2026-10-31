@@ -1,52 +1,51 @@
-# %%
-# !/usr/bin/env python3
+#!/usr/bin/env python3
 
 import os
 import warnings
 import sys
+import re
 from pathlib import Path
-
-current_file = Path(__file__).resolve()
-
-project_root = current_file.parents[2]
-
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-
 import numpy as np
 import itertools
 import pandas as pd
 import yaml
 import networkx as nx
-from lightgbm import LGBMRegressor
+from lightgbm import LGBMRegressor, LGBMClassifier
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from scm_walmart.custom_mape import *
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.tree import DecisionTreeRegressor
 
+import dowhy.gcm as gcm
+from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
+
+# --- PATH RESOLUTION ---
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# --- ENVIRONMENT SETTINGS ---
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from sklearn.model_selection import train_test_split
-import dowhy.gcm as gcm
-from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
+# --- CUSTOM UTILITIES ---
+from scm_walmart.custom_mape import custom_retail_mape
+from whyshift.region_analysis import shared_reweight
 
-# --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
-current_dir = Path(__file__).resolve().parent
-
-# 1. utils_scm (υποθέτουμε ότι βρίσκεται 2 επίπεδα πάνω, root directory)
-sys.path.append(str(current_dir.parents[1]))
+sys.path.append(str(project_root))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis,
+    extract_high_shift_rules
 )
 
-
-sys.path.append(str(current_dir.parent))
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
 # --- CONFIGURATION ---
@@ -61,11 +60,10 @@ CONFIG = {
     'target_seasons': [3],
     'random_seed': 42
 }
+
 # %%
 
-
 # PART 1: DATA INGESTION & INITIAL FILTERING
-
 
 print("PART 1: LOADING DATA & SETUP")
 
@@ -82,19 +80,14 @@ try:
 
     print(f"Dataset shape: {df.shape}")
 
-
 except FileNotFoundError:
-    print(
-        "ERROR: Data file final_data_walmart.csv'not found!")
+    print("ERROR: Data file final_data_walmart.csv not found!")
     raise
 
 
 # PART 2: DOMAIN STRATIFICATION (TEMPORAL SHIFT FORMULATION)
 
-
-print("PART 2: DOMAIN SHIFT SPLIT")
-
-
+print("\nPART 2: DOMAIN SHIFT SPLIT")
 
 source_seasons = CONFIG['source_seasons']
 target_seasons = CONFIG['target_seasons']
@@ -126,11 +119,9 @@ assert (holdout_test_df['Season'] == 3).all(), "Holdout set contains Season = 1 
 
 # %%
 
-
 # PART 3: FEATURE TRANSFORMATION AND DATA TYPE ENFORCEMENT
 
-
-print("PART 3: PREPROCESSING")
+print("\nPART 3: PREPROCESSING")
 
 try:
     # Isolate categorical nodes to ensure correct functional mappings in SCM
@@ -174,24 +165,19 @@ except Exception as e:
 
 # %%
 
-print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
+print("\nPART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
 # Build the base feature graph using the external utility
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
-
 # SURGICAL EDGE REMOVAL FOR TEMPORAL CAUSAL VALIDATION
-#
 # We deliberately remove the direct edges from the root temporal features
 # (Month/Week) to the target variable (Weekly_Sales).
-#
 # WHY: Since our intervention (domain shift) originates at the Month/Week level,
 # leaving direct shortcuts to Sales would allow the SCM to lazily bypass the
 # true physical mechanisms. By cutting these direct links but intentionally
 # KEEPING the 'Season -> Weekly_Sales' edge intact, we force the causal
 # information to flow through proper intermediate mediators (Date -> Season -> Sales).
-# This ensures we test if the SCM has genuinely learned the structural mechanics
-# of the market (i.e., how time shifts the season, and how the season drives sales).
 
 edges_to_remove = [
     ('Month_sin', 'Weekly_Sales'),
@@ -219,7 +205,8 @@ print(f"Direct children of Date Features: {set(macro_graph.successors('Date_Feat
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 # %%
-print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+
+print("\nPART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 
 scm = gcm.StructuralCausalModel(feature_graph)
 
@@ -233,7 +220,8 @@ except Exception as e:
     raise
 
 # %%
-print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+
+print("\nPART 7: SUPERVISED DOMAIN ADAPTATION")
 
 ordered_nodes = list(nx.topological_sort(feature_graph))
 nodes_to_refit = [
@@ -241,7 +229,7 @@ nodes_to_refit = [
     if n in affected_feature_nodes
 ]
 
-print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+print(f"Adapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
 try:
     refit_count = 0
     for node in nodes_to_refit:
@@ -255,22 +243,75 @@ except Exception as e:
     print(f"ERROR: Domain adaptation failed: {e}")
     raise
 
-# --- PART 8 & 9: SYNTHETIC DATA GENERATION VIA PAIRED INTERVENTIONS ---
+# %%
 
+print("\nPART 7.5: TARGETED ADAPTATION REGION ANALYSIS & RULE EXTRACTION")
 
+# 1. Ordinal Encoding for Tree (Crucial so rule names match SCM nodes exactly)
+X_src_ord = source_df.drop(columns=['Weekly_Sales']).copy()
+X_adapt_ord = adaptation_df.drop(columns=['Weekly_Sales']).copy()
+
+cat_cols_present = [c for c in categorical_nodes if c in X_src_ord.columns]
+
+if cat_cols_present:
+    oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
+    oe.fit(pd.concat([X_src_ord[cat_cols_present], X_adapt_ord[cat_cols_present]]))
+
+    X_src_ord[cat_cols_present] = oe.transform(X_src_ord[cat_cols_present])
+    X_adapt_ord[cat_cols_present] = oe.transform(X_adapt_ord[cat_cols_present])
+
+y_src = source_df['Weekly_Sales'].values
+y_adapt = adaptation_df['Weekly_Sales'].values
+
+# 2. Shared Reweighting & Shift Calculation
+wA, wB, _, _ = shared_reweight(X_src_ord.values, X_adapt_ord.values, K=8)
+
+src_model_ra = LGBMRegressor(**lgb_params).fit(X_src_ord.values, y_src, sample_weight=wA)
+adapt_model_ra = LGBMRegressor(**lgb_params).fit(X_adapt_ord.values, y_adapt, sample_weight=wB)
+
+pred_src_adapt = src_model_ra.predict(X_adapt_ord.values)
+pred_tgt_adapt = adapt_model_ra.predict(X_adapt_ord.values)
+shift_y_x = np.abs(pred_src_adapt - pred_tgt_adapt)
+
+# 3. Fit Risk Region Tree on Ordinal Data
+feature_names_ord = X_adapt_ord.columns.tolist()
+region_tree = DecisionTreeRegressor(max_depth=4, min_samples_leaf=30, random_state=CONFIG['random_seed'])
+region_tree.fit(X_adapt_ord.values, shift_y_x, sample_weight=wB)
+
+# 4. Extract Rules and Filter Adaptation Data
+high_shift_regions = extract_high_shift_rules(region_tree, feature_names_ord, threshold_percentile=80)
+rule_features = set()
+
+if high_shift_regions and len(high_shift_regions[0][0]) > 0:
+    top_rule_conditions = high_shift_regions[0][0]
+    query_str = " & ".join(top_rule_conditions)
+    print(f"\nTop High-Shift Rule identified: {query_str}")
+
+    # Extract the exact feature names used in the rule
+    rule_features = set(re.findall(r"\`([^\`]+)\`", query_str))
+
+    # Use the ordinal dataframe to evaluate the query and get the indices
+    targeted_indices = X_adapt_ord.query(query_str).index
+    targeted_adaptation_df = adaptation_df.iloc[targeted_indices].copy().reset_index(drop=True)
+else:
+    print("\nNo specific high-shift rule found. Using full adaptation_df.")
+    targeted_adaptation_df = adaptation_df.copy()
+
+if len(targeted_adaptation_df) == 0:
+    print("Warning: Rule returned empty subset. Falling back to full adaptation_df.")
+    targeted_adaptation_df = adaptation_df.copy()
+
+# %%
+
+print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
 # 1. Why use Paired/Aligned Arrays instead of independent random sampling?
-#    Cyclical features (sin/cos) are geometrically coupled. Independent sampling
-#    could fatally mix the sine of June with the cosine of December, creating
-#    non-existent temporal paradoxes. By bootstrapping authentic, complete rows
-#    from the Target Domain, we inject perfectly synchronized time-coordinates.
-#    The SCM is thus forced to generate counterfactuals around 100% realistic,
-#    chronologically coherent dates.
+#    Cyclical features (sin/cos) are geometrically coupled. By bootstrapping authentic,
+#    complete rows from the Target Domain, we inject perfectly synchronized time-coordinates.
 num_synthetic_samples = len(target_df)
 
-
-sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
-
+# Sample FROM THE TARGETED REGION instead of the uniform adaptation set
+sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 aligned_month_sin = sampled_target['Month_sin'].values
 aligned_month_cos = sampled_target['Month_cos'].values
@@ -284,36 +325,34 @@ aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
 aligned_is_summer = sampled_target['Is_Summer'].values
 
-iter_month_sin = itertools.cycle(aligned_month_sin)
-iter_month_cos = itertools.cycle(aligned_month_cos)
-iter_week_sin = itertools.cycle(aligned_week_sin) if aligned_week_sin is not None else None
-iter_week_cos = itertools.cycle(aligned_week_cos) if aligned_week_cos is not None else None
-iter_season_sin = itertools.cycle(aligned_season_sin)
-iter_season_cos = itertools.cycle(aligned_season_cos)
-iter_year_progress = itertools.cycle(aligned_year_progress)
-iter_month_progress = itertools.cycle(aligned_month_progress)
-iter_is_summer = itertools.cycle(aligned_is_summer)
+def create_intervention_func(values):
+    """Helper function to properly scope the iterator for DoWhy interventions"""
+    iterator = itertools.cycle(values)
+    return lambda x: next(iterator)
 
-def intervention_month_sin(x): return next(iter_month_sin)
-def intervention_month_cos(x): return next(iter_month_cos)
-def intervention_week_sin(x): return next(iter_week_sin) if iter_week_sin is not None else None
-def intervention_week_cos(x): return next(iter_week_cos) if iter_week_cos is not None else None
-def intervention_season_sin(x): return next(iter_season_sin)
-def intervention_season_cos(x): return next(iter_season_cos)
-def intervention_year_progress(x): return next(iter_year_progress)
-def intervention_month_progress(x): return next(iter_month_progress)
-def intervention_is_summer(x): return next(iter_is_summer)
 interventions_dict = {
-    'Month_sin': intervention_month_sin,
-    'Month_cos': intervention_month_cos,
-    'WeekOfYear_sin': intervention_week_sin,
-    'WeekOfYear_cos': intervention_week_cos,
-    'Season_sin': intervention_season_sin,
-    'Season_cos': intervention_season_cos,
-    'Is_Summer': intervention_is_summer,
-    'Year_Progress': intervention_year_progress,
-    'Month_Progress': intervention_month_progress
+    'Month_sin': create_intervention_func(aligned_month_sin),
+    'Month_cos': create_intervention_func(aligned_month_cos),
+    'WeekOfYear_sin': create_intervention_func(aligned_week_sin) if aligned_week_sin is not None else None,
+    'WeekOfYear_cos': create_intervention_func(aligned_week_cos) if aligned_week_cos is not None else None,
+    'Season_sin': create_intervention_func(aligned_season_sin),
+    'Season_cos': create_intervention_func(aligned_season_cos),
+    'Is_Summer': create_intervention_func(aligned_is_summer),
+    'Year_Progress': create_intervention_func(aligned_year_progress),
+    'Month_Progress': create_intervention_func(aligned_month_progress)
 }
+
+# Remove None values in case WeekOfYear was not present
+interventions_dict = {k: v for k, v in interventions_dict.items() if v is not None}
+
+# --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
+print("\nApplying Direct SCM Interventions from Region Analysis Rules:")
+for feature in rule_features:
+    if feature in feature_graph.nodes and feature not in interventions_dict:
+        feature_vals = sampled_target[feature].values
+        interventions_dict[feature] = create_intervention_func(feature_vals)
+        print(f"  -> Added intervention node: do({feature} = [Rule-based distribution])")
+
 print("\nGenerating synthetic data with paired Temporal & Season(sin/cos) Interventions...")
 clip_cols = ['Weekly_Sales', 'MarkDown1', 'MarkDown2', 'MarkDown3', 'MarkDown4', 'MarkDown5']
 
@@ -326,6 +365,7 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -342,6 +382,7 @@ print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")
 print(f"\nTESTDATA STATS :")
 print(f"  Mean: {holdout_test_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {holdout_test_df['Weekly_Sales'].std():.4f}")
+
 # %%
 
 print("\nEvaluation on Test Set ...")
@@ -376,8 +417,8 @@ results_df = pd.DataFrame({
 
 print("\nFirst 10 predictions:")
 print(results_df)
-# %%
 
+# %%
 
 # 2. Hybrid Data Construction via Utility
 hybrid_dataset = create_hybrid_dataset(
@@ -387,8 +428,6 @@ hybrid_dataset = create_hybrid_dataset(
     classifier_nodes=classifier_nodes,
     target_col='Weekly_Sales'
 )
-
-
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
@@ -434,9 +473,8 @@ results_df = pd.DataFrame({
 print("\nFirst 10 predictions:")
 print(results_df)
 
-
 # %%
-print("PART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
+print("\nPART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
 target_col = 'Weekly_Sales'
 

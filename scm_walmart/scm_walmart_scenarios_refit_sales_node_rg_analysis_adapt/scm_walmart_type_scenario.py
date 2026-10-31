@@ -4,6 +4,7 @@
 import os
 import warnings
 import sys
+import re
 from pathlib import Path
 
 current_file = Path(__file__).resolve()
@@ -22,12 +23,16 @@ import networkx as nx
 from lightgbm import LGBMRegressor
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.tree import DecisionTreeRegressor
+
 from scm_walmart.custom_mape import *
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from sklearn.model_selection import train_test_split
+
 import dowhy.gcm as gcm
 from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
@@ -41,8 +46,10 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis,
+    extract_high_shift_rules
 )
+from whyshift.region_analysis import shared_reweight
 
 
 sys.path.append(str(current_dir.parent))
@@ -89,16 +96,15 @@ try:
     print(f"Stores present: {sorted(df['Store'].unique())}")
 
 except FileNotFoundError:
-    print(
-        "ERROR: Data file final_data_walmart.csv'not found!")
+    print("ERROR: Data file final_data_walmart.csv not found!")
     raise
 
 # --- Section II: Domain Segregation & Shift Definition ---
-print("PART 2: DOMAIN SHIFT SPLIT (STORES C vs A&B)")
+print("\nPART 2: DOMAIN SHIFT SPLIT (STORES C vs A&B)")
 
 # Isolate the Source Domain (Type C) and the Target Domain (Type A & B)
-source_df = df[df['Type'].isin(CONFIG['source_store_types'])]
-target_df = df[df['Type'].isin(CONFIG['target_store_types'])]
+source_df = df[df['Type'].isin(CONFIG['source_store_types'])].copy().reset_index(drop=True)
+target_df = df[df['Type'].isin(CONFIG['target_store_types'])].copy().reset_index(drop=True)
 
 
 adaptation_df, holdout_test_df = train_test_split(
@@ -114,12 +120,12 @@ print(f"\nTest domain (Type A & B)")
 print(f"Adaptation set shape (for refit): {adaptation_df.shape}")
 print(f"Holdout Test shape (for evaluation): {holdout_test_df.shape}")
 
-print("✓ Domain separation verified: No overlap between Store Numbers")
+print("✓ Domain separation verified: No overlap between Store Types")
 
 # %%
 
 # --- Section III: Feature Space Normalization & Type Casting ---
-print("PART 3: PREPROCESSING")
+print("\nPART 3: PREPROCESSING")
 
 try:
     categorical_cols_to_exclude = [
@@ -137,7 +143,7 @@ try:
             except ValueError as e:
                 pass
 
-    # Standardize boolean/binary indicators as string-type.sh categorical nodes
+    # Standardize boolean/binary indicators as string-type categorical nodes
     binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season", "Is_Summer", "Is_Month_Start",
                     "Is_Month_End"]
     for col in binary_nodes:
@@ -162,7 +168,7 @@ except Exception as e:
 # %%
 
 # --- Section IV: Structural Causal Model (SCM) Topology Definition ---
-print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
+print("\nPART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
 # Build the base feature graph using the external utility
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
@@ -188,7 +194,7 @@ print(f"Direct children of Store_Features: {set(macro_graph.successors('Store_Fe
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 # %%
-print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+print("\nPART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 
 scm = gcm.StructuralCausalModel(feature_graph)
 
@@ -203,7 +209,7 @@ except Exception as e:
     raise
 
 # %%
-print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+print("\nPART 7: SUPERVISED DOMAIN ADAPTATION")
 
 ordered_nodes = list(nx.topological_sort(feature_graph))
 nodes_to_refit = [
@@ -211,7 +217,7 @@ nodes_to_refit = [
     if n in affected_feature_nodes
 ]
 
-print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+print(f"Adapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
 try:
     refit_count = 0
     for node in nodes_to_refit:
@@ -227,12 +233,69 @@ except Exception as e:
     raise
 
 # %%
-print("PART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
+print("\nPART 7.5: TARGETED ADAPTATION REGION ANALYSIS & RULE EXTRACTION")
+
+# 1. Ordinal Encoding for Tree (Crucial so rule names match SCM nodes exactly)
+X_src_ord = source_df.drop(columns=['Weekly_Sales']).copy()
+X_adapt_ord = adaptation_df.drop(columns=['Weekly_Sales']).copy()
+
+cat_cols_present = [c for c in categorical_nodes if c in X_src_ord.columns]
+
+if cat_cols_present:
+    oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
+    oe.fit(pd.concat([X_src_ord[cat_cols_present], X_adapt_ord[cat_cols_present]]))
+
+    X_src_ord[cat_cols_present] = oe.transform(X_src_ord[cat_cols_present])
+    X_adapt_ord[cat_cols_present] = oe.transform(X_adapt_ord[cat_cols_present])
+
+y_src = source_df['Weekly_Sales'].values
+y_adapt = adaptation_df['Weekly_Sales'].values
+
+# 2. Shared Reweighting & Shift Calculation
+wA, wB, _, _ = shared_reweight(X_src_ord.values, X_adapt_ord.values, K=8)
+
+src_model_ra = LGBMRegressor(**lgb_params).fit(X_src_ord.values, y_src, sample_weight=wA)
+adapt_model_ra = LGBMRegressor(**lgb_params).fit(X_adapt_ord.values, y_adapt, sample_weight=wB)
+
+pred_src_adapt = src_model_ra.predict(X_adapt_ord.values)
+pred_tgt_adapt = adapt_model_ra.predict(X_adapt_ord.values)
+shift_y_x = np.abs(pred_src_adapt - pred_tgt_adapt)
+
+# 3. Fit Risk Region Tree on Ordinal Data
+feature_names_ord = X_adapt_ord.columns.tolist()
+region_tree = DecisionTreeRegressor(max_depth=4, min_samples_leaf=30, random_state=CONFIG['random_seed'])
+region_tree.fit(X_adapt_ord.values, shift_y_x, sample_weight=wB)
+
+# 4. Extract Rules and Filter Adaptation Data
+high_shift_regions = extract_high_shift_rules(region_tree, feature_names_ord, threshold_percentile=80)
+rule_features = set()
+
+if high_shift_regions and len(high_shift_regions[0][0]) > 0:
+    top_rule_conditions = high_shift_regions[0][0]
+    query_str = " & ".join(top_rule_conditions)
+    print(f"\nTop High-Shift Rule identified: {query_str}")
+
+    # Extract the exact feature names used in the rule
+    rule_features = set(re.findall(r"\`([^\`]+)\`", query_str))
+
+    # Use the ordinal dataframe to evaluate the query and get the indices
+    targeted_indices = X_adapt_ord.query(query_str).index
+    targeted_adaptation_df = adaptation_df.iloc[targeted_indices].copy().reset_index(drop=True)
+else:
+    print("\nNo specific high-shift rule found. Using full adaptation_df.")
+    targeted_adaptation_df = adaptation_df.copy()
+
+if len(targeted_adaptation_df) == 0:
+    print("Warning: Rule returned empty subset. Falling back to full adaptation_df.")
+    targeted_adaptation_df = adaptation_df.copy()
+
+# %%
+print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
 num_synthetic_samples = len(target_df)
 
-# 1. Sample real rows from Target Domain (Type A & B) to maintain physical reality
-sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
+# 1. Sample FROM THE TARGETED REGION to maintain physical reality of the problem area
+sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 # 2. Extract the aligned physical properties of the store type
 aligned_store = sampled_target['Store'].values
@@ -240,23 +303,26 @@ aligned_city = sampled_target['city'].values
 aligned_type = sampled_target['Type'].values
 aligned_size = sampled_target['Size'].values
 
-iter_store = itertools.cycle(aligned_store)
-iter_city = itertools.cycle(aligned_city)
-iter_type = itertools.cycle(aligned_type)
-iter_size = itertools.cycle(aligned_size)
-
-# 3. Create intervention functions with next()
-def int_store(x): return next(iter_store)
-def int_city(x): return next(iter_city)
-def int_type(x): return next(iter_type)
-def int_size(x): return next(iter_size)
+def create_intervention_func(values):
+    """Helper function to properly scope the iterator for DoWhy interventions"""
+    iterator = itertools.cycle(values)
+    return lambda x: next(iterator)
 
 interventions_dict = {
-    'Store': int_store,
-    'city': int_city,
-    'Type': int_type,
-    'Size': int_size
+    'Store': create_intervention_func(aligned_store),
+    'city': create_intervention_func(aligned_city),
+    'Type': create_intervention_func(aligned_type),
+    'Size': create_intervention_func(aligned_size)
 }
+
+# --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
+print("\nApplying Direct SCM Interventions from Region Analysis Rules:")
+for feature in rule_features:
+    if feature in feature_graph.nodes and feature not in interventions_dict:
+        feature_vals = sampled_target[feature].values
+        interventions_dict[feature] = create_intervention_func(feature_vals)
+        print(f"  -> Added intervention node: do({feature} = [Rule-based distribution])")
+
 
 print("\nGenerating synthetic data with paired Spatial & Store Interventions...")
 
@@ -387,7 +453,7 @@ print(results_df)
 
 
 # %%
-print("PART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
+print("\nPART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
 target_col = 'Weekly_Sales'
 
