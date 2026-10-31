@@ -303,7 +303,11 @@ print("\nHybrid Dataset (Mixed Train + Synthetic Target)...")
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
-
+X_test = test_df.drop(columns=['Weekly_Sales'])
+X_test = X_test[X_hybrid.columns]
+for col in classifier_nodes:
+    if col in X_test.columns:
+        X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 ml_model_hbr.fit(X_hybrid, y_hybrid)
