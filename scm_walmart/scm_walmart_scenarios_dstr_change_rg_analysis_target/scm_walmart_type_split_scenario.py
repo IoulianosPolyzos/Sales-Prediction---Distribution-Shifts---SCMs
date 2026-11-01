@@ -14,36 +14,30 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+import pandas as pd
 import yaml
 import numpy as np
 import itertools
-import pandas as pd
-import networkx as nx
-from lightgbm import LGBMRegressor
-from matplotlib import pyplot as plt
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OrdinalEncoder
-from sklearn.tree import DecisionTreeRegressor
-
-from scm_walmart.custom_mape import *
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.tree import DecisionTreeRegressor
+from scm_walmart.custom_mape import *
+from lightgbm import LGBMRegressor
 import dowhy.gcm as gcm
-from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
 # --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
 current_dir = Path(__file__).resolve().parent
 
-# 1. utils_scm (υποθέτουμε ότι βρίσκεται 2 επίπεδα πάνω, root directory)
+# 1. utils_scm is located two levels up (root)
 sys.path.append(str(current_dir.parents[1]))
 from utils_scm import (
     get_all_descendants,
     setup_mechanisms,
-    evaluate_sales_on_holdout,
     generate_synthetic_data,
     create_hybrid_dataset,
     run_whyshift_region_analysis,
@@ -51,23 +45,21 @@ from utils_scm import (
 )
 from whyshift.region_analysis import shared_reweight
 
-
+# 2. scm_walmart_graph_utils is located one level up
 sys.path.append(str(current_dir.parent))
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
 # --- CONFIGURATION ---
-try:
-    with open("../config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    lgb_params = config["lgb_params"]
-except FileNotFoundError:
-    print("Config not found, using default LGBM parameters.")
-    lgb_params = {'n_estimators': 100, 'random_state': 42}
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
 
 
 CONFIG = {
-    'source_domain': 'Normal Days (IsChristmasSeasons=0)',
-    'target_domain': 'Christmas Days (Is_Christmas_Season=1)',
+    'train_store_types': ['C'],
+    'target_store_types': ['A', 'B'],
     'random_seed': 42
 }
 
@@ -85,27 +77,26 @@ try:
     )
     df = df.fillna(0)
 
+    # Ensure Store is an integer for correct filtering
+    df['Store'] = pd.to_numeric(df['Store'], errors='coerce').fillna(-1).astype(int)
+
     print(f"Dataset shape: {df.shape}")
-    print(f"Is_Christmas_Season distribution:")
-    print(f"  Normal Days (0): {(df['Is_Christmas_Season'] == 0).sum()} records")
-    print(f"  Christmas Days (1): {(df['Is_Christmas_Season'] == 1).sum()} records")
+    print(f"Stores present: {sorted(df['Store'].unique())}")
 
 except FileNotFoundError:
     print("ERROR: Data file 'final_data_walmart.csv' not found!")
     raise
 
 
-# PART 2: SPLIT DATA BY Christmas DOMAIN
+
+# PART 2: SPLIT DATA BY STORES
+
+print("\nPART 2: DOMAIN SHIFT SPLIT (STORES C vs A&B)")
 
 
-print("\nPART 2: DOMAIN SHIFT SPLIT (NORMAL vs Christmas)")
-
-
-# Ensure Is_Christmas_Season is numeric (0 or 1)
-df['Is_Christmas_Season'] = df['Is_Christmas_Season'].astype(int)
-
-source_df = df[df['Is_Christmas_Season'] == 0].copy().reset_index(drop=True)
-target_df = df[df['Is_Christmas_Season'] == 1].copy().reset_index(drop=True)
+# Split based on Store Type
+source_df = df[df['Type'].isin(CONFIG['train_store_types'])].copy().reset_index(drop=True)
+target_df = df[df['Type'].isin(CONFIG['target_store_types'])].copy().reset_index(drop=True)
 
 
 source_domain_train, source_domain_test = train_test_split(
@@ -116,15 +107,12 @@ target_domain_train , target_domain_test = train_test_split(target_df,test_size=
 train_df = pd.concat([source_domain_train, target_domain_train], axis=0).sample(frac=1, random_state=42)
 test_df = pd.concat([source_domain_test, target_domain_test], axis=0).sample(frac=1, random_state=42)
 
-print(f"Train domain: {CONFIG['source_domain']}")
-print(f"Train shape: {train_df.shape}")
-print(f"\nTest domain: {CONFIG['target_domain']}")
+
+print(f"Train domain (Type C) shape: {train_df.shape}")
+print(f"\nTest domain (Type A & B)")
 
 
-# Verify domain separation
-#assert (train_df['Is_Christmas_Season'] == 0).all(), "Train set contains non-zero Is_Christmas_Season!"
-
-print("✓ Domain separation verified: No overlap between Normal/Christmas days")
+print("✓ Domain separation verified: No overlap between Store Types")
 
 #%%
 
@@ -132,13 +120,11 @@ print("\nPART 3: PREPROCESSING")
 
 
 try:
-    # Define categorical columns
     categorical_cols_to_exclude = [
         "city", "Type", "weather_condition",
         "Store", "Dept"
     ]
 
-    # Convert numeric columns
     for col in train_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
@@ -146,30 +132,22 @@ try:
                 test_df[col] = pd.to_numeric(test_df[col], errors='raise')
                 source_domain_train[col] = pd.to_numeric(source_domain_train[col], errors='raise')
                 target_domain_train[col] = pd.to_numeric(target_domain_train[col], errors='raise')
-                source_domain_test[col] = pd.to_numeric(source_domain_test[col], errors='raise')
-                target_domain_test[col] = pd.to_numeric(target_domain_test[col], errors='raise')
             except ValueError as e:
-                print(f"WARNING: Could not convert {col} to numeric: {e}")
+                pass
 
-    # Binary encoding
     binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         train_df[col] = train_df[col].astype(int).astype(str)
         test_df[col] = test_df[col].astype(int).astype(str)
         source_domain_train[col] = source_domain_train[col].astype(int).astype(str)
         target_domain_train[col] = target_domain_train[col].astype(int).astype(str)
-        source_domain_test[col] = source_domain_test[col].astype(int).astype(str)
-        target_domain_test[col] = target_domain_test[col].astype(int).astype(str)
 
-    # Categorical encoding
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         train_df[col] = train_df[col].astype(str)
         test_df[col] = test_df[col].astype(str)
         source_domain_train[col] = source_domain_train[col].astype(str)
         target_domain_train[col] = target_domain_train[col].astype(str)
-        source_domain_test[col] = source_domain_test[col].astype(str)
-        target_domain_test[col] = target_domain_test[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -181,6 +159,7 @@ except Exception as e:
 #%%
 print("\nPART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
+# Build the base feature graph and retrieve structural groups using the external utility
 feature_graph, causal_groups, macro_graph = build_feature_graph(train_df.columns)
 
 # Since there are source data in train set , there is no need to remove the edge between
@@ -189,52 +168,28 @@ feature_graph, causal_groups, macro_graph = build_feature_graph(train_df.columns
 # %%
 print("\nPART 6: FITTING MIXED STRUCTURAL CAUSAL MODEL (ON POOLED TRAIN DATA)")
 
+# Instantiate Structural Causal Model over feature-level DAG
 scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
+    # Set up the internal causal mechanisms (LGBM) using the external utility
     setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
-    print("Fitting SCM on Dtrain (90% Normal + 10% Christmas)...")
+    print("Fitting SCM on Dtrain (90% Source Types + 10% Target Types)...")
 
+    # The SCM is trained directly on the mixed dataset, automatically
+    # learning local store type behaviors without needing a separate Domain Adaptation step.
     gcm.fit(scm, train_df)
     print("✓ Mixed SCM fit complete")
+
 except Exception as e:
     print(f"ERROR: Failed to fit SCM: {e}")
     raise
 
-# %%
-print("\nPART 7: EVALUATION ON Dtest (10% NORMAL + 90% CHRISTMAS)")
-
-try:
-    sales_mechanism = scm.causal_mechanism("Weekly_Sales")
-    parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
-
-    X_test = test_df[parents].to_numpy()
-    test_predictions = sales_mechanism.prediction_model.predict(X_test).flatten()
-
-    mae = mean_absolute_error(test_df['Weekly_Sales'].values, test_predictions)
-    rmse = np.sqrt(mean_squared_error(test_df['Weekly_Sales'].values, test_predictions))
-    mape = custom_retail_mape(test_df['Weekly_Sales'].values, test_predictions)
-    r2 = r2_score(test_df['Weekly_Sales'].values, test_predictions)
-
-    print(f"\n PREDICTION METRICS (Mixed Test Set) ")
-    print(f"MAE:  {mae:.2f}")
-    print(f"RMSE: {rmse:.2f}")
-    print(f"MAPE (Sklearn): {mape:.2f}")
-    print(f"R²:   {r2:.4f}")
-
-    evaluate_sales_on_holdout(
-        scm, feature_graph, test_df, "MIXED SCM EVALUATION",target_col="Weekly_Sales"
-    )
-
-except Exception as e:
-    print(f"ERROR: Test evaluation failed: {e}")
-    raise
 
 # %%
-print("\nPART 7.5: TARGETED ADAPTATION REGION ANALYSIS & RULE EXTRACTION")
+print("\nPART 7.5: TARGETED REGION ANALYSIS & RULE EXTRACTION")
 
 # 1. Ordinal Encoding for Tree (Crucial so rule names match SCM nodes exactly)
-# Using source_domain_train as the source and target_domain_train as the adaptation/target set
 X_src_ord = source_domain_train.drop(columns=['Weekly_Sales']).copy()
 X_adapt_ord = target_domain_train.drop(columns=['Weekly_Sales']).copy()
 
@@ -288,51 +243,44 @@ if len(targeted_adaptation_df) == 0:
     print("Warning: Rule returned empty subset. Falling back to full target_domain_train.")
     targeted_adaptation_df = target_domain_train.copy()
 
+
 # %%
 print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
 num_synthetic_samples = len(target_df)
 
-# Sample FROM THE TARGETED REGION instead of the uniform target domain train set
+# 1. Sample FROM THE TARGETED REGION to maintain physical reality
 sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-aligned_month_sin = sampled_target['Month_sin'].values
-aligned_month_cos = sampled_target['Month_cos'].values
-aligned_week_sin = sampled_target['WeekOfYear_sin'].values if 'WeekOfYear_sin' in target_df.columns else None
-aligned_week_cos = sampled_target['WeekOfYear_cos'].values if 'WeekOfYear_cos' in target_df.columns else None
-aligned_christmas = sampled_target['Is_Christmas_Season'].values
-aligned_year_progress = sampled_target['Year_Progress'].values
-aligned_month_progress = sampled_target['Month_Progress'].values
-
+# 2. Extract the aligned physical properties of the store type
+aligned_store = sampled_target['Store'].values
+aligned_city = sampled_target['city'].values
+aligned_type = sampled_target['Type'].values
+aligned_size = sampled_target['Size'].values
 
 def create_intervention_func(values):
     """Helper function to properly scope the iterator for DoWhy interventions"""
     iterator = itertools.cycle(values)
     return lambda x: next(iterator)
 
-
 interventions_dict = {
-    'Month_sin': create_intervention_func(aligned_month_sin),
-    'Month_cos': create_intervention_func(aligned_month_cos),
-    'WeekOfYear_sin': create_intervention_func(aligned_week_sin) if aligned_week_sin is not None else None,
-    'WeekOfYear_cos': create_intervention_func(aligned_week_cos) if aligned_week_cos is not None else None,
-    'Is_Christmas_Season': create_intervention_func(aligned_christmas),
-    'Year_Progress': create_intervention_func(aligned_year_progress),
-    'Month_Progress': create_intervention_func(aligned_month_progress)
+    'Store': create_intervention_func(aligned_store),
+    'city': create_intervention_func(aligned_city),
+    'Type': create_intervention_func(aligned_type),
+    'Size': create_intervention_func(aligned_size)
 }
 
-# Remove None values in case WeekOfYear was not present
-interventions_dict = {k: v for k, v in interventions_dict.items() if v is not None}
 
 # --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
 print("\nApplying Direct SCM Interventions from Region Analysis Rules:")
 for feature in rule_features:
     if feature in feature_graph.nodes and feature not in interventions_dict:
-        # Intervene directly on the SCM node by forcing it to sample from the rule's distribution
         feature_vals = sampled_target[feature].values
         interventions_dict[feature] = create_intervention_func(feature_vals)
         print(f"  -> Added intervention node: do({feature} = [Rule-based distribution])")
 
+
+print("\nGenerating synthetic data with paired Spatial & Store Interventions...")
 
 clip_cols = [
     'Weekly_Sales',
@@ -343,7 +291,6 @@ clip_cols = [
     'MarkDown5'
 ]
 
-print("\nGenerating synthetic data...")
 synthetic_dataset = generate_synthetic_data(
     scm=scm,
     interventions_dict=interventions_dict,
@@ -353,7 +300,6 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
-
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -363,18 +309,17 @@ y_syn = synthetic_dataset['Weekly_Sales']
 ml_model_syn = LGBMRegressor(**lgb_params)
 ml_model_syn.fit(X_syn, y_syn)
 
-print(f"\nTRAIN DATA STATS :")
+print(f"\nTRAIN (Mixed) DATA STATS :")
 print(f"  Mean: {train_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {train_df['Weekly_Sales'].std():.4f}")
 
-print(f"\nTESTDATA STATS :")
+print(f"\nTEST (Mixed) DATA STATS :")
 print(f"  Mean: {test_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {test_df['Weekly_Sales'].std():.4f}")
-# %%
 
-print("\nEvaluation on Test Set ...")
+# Evaluation on Test Set
+print("\nEvaluation on Mixed Test Set ...")
 
-# Format out-of-distribution Target set features for unbiased evaluation
 X_test = test_df.drop(columns=['Weekly_Sales'])
 X_test = X_test[X_syn.columns]
 for col in classifier_nodes:
@@ -390,22 +335,13 @@ rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 r2 = r2_score(y_test, y_pred)
 mape = custom_retail_mape(y_test, y_pred)
 
-print(f"Prediction Results on Test Set:")
+print(f"Prediction Results on Test Set (Synthetic Model):")
 print(f"  - Mean Absolute Error (MAE): {mae:.2f}")
 print(f"  - Root Mean Squared Error (RMSE): {rmse:.2f}")
 print(f"  - Mean Absolute Percentage Error (MAPE): {mape:.2f}")
 print(f"  - R²: {r2:.2f}")
 
-results_df = pd.DataFrame({
-    'Christmas Season': test_df['Is_Christmas_Season'].values,
-    'Actual_Sales': y_test.values,
-    'Predicted_Sales': y_pred
-}).head(10)
-
-print("\nFirst 10 predictions:")
-print(results_df)
-# %%
-
+print(f"✓ Synthetic Dataset Shape: {synthetic_dataset.shape}")
 
 # 2. Hybrid Data Construction via Utility
 hybrid_dataset = create_hybrid_dataset(
@@ -415,78 +351,69 @@ hybrid_dataset = create_hybrid_dataset(
     classifier_nodes=classifier_nodes,
     target_col='Weekly_Sales'
 )
+print(f"✓ Hybrid Dataset Shape: {hybrid_dataset.shape}")
+print("\nHybrid Dataset (Mixed Train + Synthetic Target)...")
+
+
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
-
-print("\nTraining ML Model on Hybrid Dataset...")
-ml_model_hbr = LGBMRegressor(**lgb_params)
-
-ml_model_hbr.fit(X_hybrid, y_hybrid)
-print(f"\nTRAIN DATA STATS :")
-print(f"  Mean: {train_df['Weekly_Sales'].mean():.4f}")
-print(f"  Std:  {train_df['Weekly_Sales'].std():.4f}")
-
-print(f"\nTESTDATA STATS :")
-print(f"  Mean: {test_df['Weekly_Sales'].mean():.4f}")
-print(f"  Std:  {test_df['Weekly_Sales'].std():.4f}")
-print("\nEvaluation on Test Set ...")
-
 X_test = test_df.drop(columns=['Weekly_Sales'])
 X_test = X_test[X_hybrid.columns]
 for col in classifier_nodes:
     if col in X_test.columns:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
-y_test = test_df['Weekly_Sales']
+print("\nTraining ML Model on Hybrid Dataset...")
+ml_model_hbr = LGBMRegressor(**lgb_params)
 
-y_pred = ml_model_hbr.predict(X_test)
+ml_model_hbr.fit(X_hybrid, y_hybrid)
 
-mae = mean_absolute_error(y_test, y_pred)
-rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-r2 = r2_score(y_test, y_pred)
-mape = custom_retail_mape(y_test, y_pred)
-print(f"\nPrediction Results:")
-print(f"  - Mean Absolute Error (MAE): {mae:.2f}")
-print(f"  - Root Mean Squared Error (RMSE): {rmse:.2f}")
-print(f"  - Mean Absolute Percentage Error (MAPE): {mape:.2f}")
-print(f"  - R²: {r2:.2f}")
+print("\nEvaluation of Hybrid Model on Mixed Test Set ...")
+y_pred_hbr = ml_model_hbr.predict(X_test)
 
-results_df = pd.DataFrame({
-    'Christmas Season': test_df['Is_Christmas_Season'].values,
-    'Actual_Sales': y_test.values,
-    'Predicted_Sales': y_pred
-}).head(10)
+mae_hbr = mean_absolute_error(y_test, y_pred_hbr)
+rmse_hbr = np.sqrt(mean_squared_error(y_test, y_pred_hbr))
+r2_hbr = r2_score(y_test, y_pred_hbr)
+mape_hbr = custom_retail_mape(y_test, y_pred_hbr)
 
-print("\nFirst 10 predictions:")
-print(results_df)
+print(f"Prediction Results on Test Set (Hybrid Model):")
+print(f"  - Mean Absolute Error (MAE): {mae_hbr:.2f}")
+print(f"  - Root Mean Squared Error (RMSE): {rmse_hbr:.2f}")
+print(f"  - Mean Absolute Percentage Error (MAPE): {mape_hbr:.2f}")
+print(f"  - R²: {r2_hbr:.2f}")
 
 # %%
 print("\nPART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
+target_col = 'Weekly_Sales'
+
+# In the mixed setting, Dtrain acts as our baseline "Source" and Dtest acts as our true "Target"
+# because Dtrain is 90% Source Types, and Dtest is 90% Target Types.
+
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=test_df,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CHRISTMAS_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_TYPE_MIXED_REGION.png"
 )
 
 # 2. Real vs Synthetic
 run_whyshift_region_analysis(
     df_source=train_df, df_target=synthetic_dataset,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_CHRISTMAS_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Real Dtrain", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_TYPE_MIXED_REGION.png"
 )
 
 # 3. Real vs Hybrid
 run_whyshift_region_analysis(
     df_source=train_df, df_target=hybrid_dataset,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_CHRISTMAS_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Real Dtrain", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_TYPE_MIXED_REGION.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=test_df,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CHRISTMAS_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_TYPE_MIXED_REGION.png"
 )

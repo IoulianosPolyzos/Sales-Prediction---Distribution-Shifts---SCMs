@@ -14,26 +14,31 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import pandas as pd
 import yaml
 import numpy as np
 import itertools
+import pandas as pd
+import networkx as nx
+from lightgbm import LGBMRegressor
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.tree import DecisionTreeRegressor
+
+from scm_walmart.custom_mape import *
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)
 
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import OrdinalEncoder
-from sklearn.tree import DecisionTreeRegressor
-from scm_walmart.custom_mape import *
-from lightgbm import LGBMRegressor
+
 import dowhy.gcm as gcm
+from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 
 # --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
 current_dir = Path(__file__).resolve().parent
 
-# 1. utils_scm is located two levels up (root)
+# 1. utils_scm (υποθέτουμε ότι βρίσκεται 2 επίπεδα πάνω, root directory)
 sys.path.append(str(current_dir.parents[1]))
 from utils_scm import (
     get_all_descendants,
@@ -44,6 +49,7 @@ from utils_scm import (
     extract_high_shift_rules
 )
 from whyshift.region_analysis import shared_reweight
+
 
 # 2. scm_walmart_graph_utils is located one level up
 sys.path.append(str(current_dir.parent))
@@ -58,15 +64,10 @@ lgb_params = config["lgb_params"]
 
 
 CONFIG = {
-    'source_weather': ["Rain","Snow","Clouds"],
-    'target_weather': ["Clear"],
+    'source_cities': ["Houston", "Philadelphia", "Phoenix", "San Jose", "Jacksonville","Austin"],
+    'target_cities': ["New York", "Los Angeles", "Chicago"],
     'random_seed': 42,
-    'checkpoint_dir': './checkpoints_weather',
 }
-
-#%%
-
-
 
 print("PART 1: LOADING DATA & SETUP")
 
@@ -78,11 +79,11 @@ try:
         columns=["Date","Season","DayOfWeek","Month","WeekOfYear"],
         errors='ignore'
     )
-    df = df.fillna(0)  # Keep original imputation strategy as requested
+    df = df.fillna(0)
 
     print(f"Dataset shape: {df.shape}")
-    print(f"Unique Weather Conditions: {df['weather_condition'].nunique()}")
-    print(f"Weather Conditions: {sorted(df['weather_condition'].unique())}")
+    print(f"Unique cities: {df['city'].nunique()}")
+    print(f"Cities: {sorted(df['city'].unique())}")
 
 except FileNotFoundError:
     print("ERROR: Data file 'final_data_walmart.csv' not found!")
@@ -91,17 +92,14 @@ except FileNotFoundError:
 
 # PART 2: SPLIT DATA BY CITIES
 
+print("\nPART 2: DOMAIN SHIFT SPLIT (TRAIN/TEST BY CITIES)")
 
 
-print("\nPART 2: DOMAIN SHIFT SPLIT (TRAIN/TEST BY weather_conditions)")
+source_cities = CONFIG['source_cities']
+target_cities = CONFIG['target_cities']
 
-
-source_weather = CONFIG['source_weather']
-target_weather = CONFIG['target_weather']
-
-source_df = df[df['weather_condition'].isin(source_weather)].copy().reset_index(drop=True)
-target_df = df[df['weather_condition'].isin(target_weather)].copy().reset_index(drop=True)
-
+source_df = df[df['city'].isin(source_cities)].copy().reset_index(drop=True)
+target_df = df[df['city'].isin(target_cities)].copy().reset_index(drop=True)
 
 source_domain_train, source_domain_test = train_test_split(
     source_df, test_size=0.1, random_state=42
@@ -112,20 +110,14 @@ train_df = pd.concat([source_domain_train, target_domain_train], axis=0).sample(
 test_df = pd.concat([source_domain_test, target_domain_test], axis=0).sample(frac=1, random_state=42)
 
 
-print(f"Train weather conditions: {source_weather}")
+print(f"Source Cities: {source_cities}")
 print(f"Train shape: {train_df.shape}")
-print(f"\nTest weather conditions: {target_weather}")
+print(f"\nTarget cities: {target_cities}")
 
-
-# Verify no overlap
-assert set(source_weather).isdisjoint(set(target_weather)), "Train/Test weather conditions overlap!"
-print("✓ No overlap between TRAIN/TEST weather_conditions")
 
 #%%
 
-
 print("\nPART 3: PREPROCESSING")
-
 
 try:
     categorical_cols_to_exclude = [
@@ -182,23 +174,20 @@ scm = gcm.StructuralCausalModel(feature_graph)
 try:
     # Set up the internal causal mechanisms (LGBM) using the external utility
     setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
-    print("Fitting SCM on Dtrain (90% Source Weather + 10% Target Weather)...")
+    print("Fitting SCM on Dtrain (90% Source Cities + 10% Target Cities)...")
 
     # The SCM is trained directly on the mixed dataset, automatically
-    # learning local weather behaviors without needing a separate Domain Adaptation step.
+    # learning source and target city behaviors simultaneously.
     gcm.fit(scm, train_df)
     print("✓ Mixed SCM fit complete")
-
 except Exception as e:
     print(f"ERROR: Failed to fit SCM: {e}")
     raise
 
-
 # %%
-print("\nPART 7.5: TARGETED ADAPTATION REGION ANALYSIS & RULE EXTRACTION")
+print("\nPART 7.5: TARGETED REGION ANALYSIS & RULE EXTRACTION")
 
 # 1. Ordinal Encoding for Tree (Crucial so rule names match SCM nodes exactly)
-# Using source_domain_train as the source and target_domain_train as the adaptation/target set
 X_src_ord = source_domain_train.drop(columns=['Weekly_Sales']).copy()
 X_adapt_ord = target_domain_train.drop(columns=['Weekly_Sales']).copy()
 
@@ -252,7 +241,6 @@ if len(targeted_adaptation_df) == 0:
     print("Warning: Rule returned empty subset. Falling back to full target_domain_train.")
     targeted_adaptation_df = target_domain_train.copy()
 
-
 # %%
 print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
@@ -261,15 +249,14 @@ num_synthetic_samples = len(target_df)
 # Sample FROM THE TARGETED REGION instead of the uniform target domain train set
 sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-aligned_weather = sampled_target['weather_condition'].values
+aligned_city = sampled_target['city'].values
 
 def create_intervention_func(values):
-    """Helper function to properly scope the iterator for DoWhy interventions"""
     iterator = itertools.cycle(values)
     return lambda x: next(iterator)
 
 interventions_dict = {
-    'weather_condition': create_intervention_func(aligned_weather)
+    'city': create_intervention_func(aligned_city)
 }
 
 # --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
@@ -300,6 +287,7 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -327,7 +315,6 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_syn[col].cat.categories)
 y_test = test_df['Weekly_Sales']
 
-# Generate predictions utilizing the SCM-synthesized target model
 y_pred = ml_model_syn.predict(X_test)
 
 mae = mean_absolute_error(y_test, y_pred)
@@ -355,7 +342,6 @@ print(f"✓ Hybrid Dataset Shape: {hybrid_dataset.shape}")
 print("\nHybrid Dataset (Mixed Train + Synthetic Target)...")
 
 
-
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
 X_test = test_df.drop(columns=['Weekly_Sales'])
@@ -365,7 +351,6 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
-
 ml_model_hbr.fit(X_hybrid, y_hybrid)
 
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")
@@ -385,35 +370,33 @@ print(f"  - R²: {r2_hbr:.2f}")
 # %%
 print("\nPART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
-target_col = 'Weekly_Sales'
-
 # In the mixed setting, Dtrain acts as our baseline "Source" and Dtest acts as our true "Target"
-# because Dtrain is 90% Source Weather, and Dtest is 90% Target Weather.
+# because Dtrain is 90% Source Cities, and Dtest is 90% Target Cities.
 
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=test_df,
-    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_WEATHER_MIXED_REGION.png"
+    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CITY_MIXED_REGION.png"
 )
 
 # 2. Real vs Synthetic
 run_whyshift_region_analysis(
     df_source=train_df, df_target=synthetic_dataset,
-    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_WEATHER_MIXED_REGION.png"
+    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Real Dtrain", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_CITY_MIXED_REGION.png"
 )
 
 # 3. Real vs Hybrid
 run_whyshift_region_analysis(
     df_source=train_df, df_target=hybrid_dataset,
-    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_WEATHER_MIXED_REGION.png"
+    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Real Dtrain", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_CITY_MIXED_REGION.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=test_df,
-    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_WEATHER_MIXED_REGION.png"
+    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CITY_MIXED_REGION.png"
 )
