@@ -7,7 +7,7 @@ import numpy as np
 
 
 # Path to specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -90,7 +90,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -169,7 +169,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -253,7 +253,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -334,7 +334,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -415,7 +415,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -496,7 +496,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)

@@ -5,8 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
-
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 

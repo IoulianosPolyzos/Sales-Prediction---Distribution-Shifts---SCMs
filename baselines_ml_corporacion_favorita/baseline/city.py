@@ -9,7 +9,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 
 
