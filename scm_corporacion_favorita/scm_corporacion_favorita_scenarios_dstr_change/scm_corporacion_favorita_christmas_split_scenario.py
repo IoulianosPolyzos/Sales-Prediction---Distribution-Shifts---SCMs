@@ -325,8 +325,11 @@ print(f"  - R²: {r2_hbr:.2f}")
 # %%
 print("PART 9: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
-# In the mixed setting, Dtrain acts as our baseline "Source" and Dtest acts as our true "Target"
-# because Dtrain is 90% normal days, and Dtest is 90% christmas days.
+n_whyshift = 100000
+synth_sample = synthetic_dataset.sample(n=min(n_whyshift, len(synthetic_dataset)), random_state=CONFIG['random_seed'])
+target_sample = test_df.sample(n=min(n_whyshift, len(test_df)), random_state=CONFIG['random_seed'])
+source_sample = train_df.sample(n=min(n_whyshift, len(source_df)), random_state=CONFIG['random_seed'])
+hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), random_state=CONFIG['random_seed'])
 
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(

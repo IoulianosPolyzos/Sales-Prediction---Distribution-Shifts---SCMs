@@ -384,7 +384,12 @@ print(results_df)
 # %%
 print("PART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
-target_col = 'unit_sales'
+n_whyshift = 100000
+synth_sample = synthetic_dataset.sample(n=min(n_whyshift, len(synthetic_dataset)), random_state=CONFIG['random_seed'])
+target_sample = holdout_test_df.sample(n=min(n_whyshift, len(holdout_test_df)), random_state=CONFIG['random_seed'])
+source_sample = source_df.sample(n=min(n_whyshift, len(source_df)), random_state=CONFIG['random_seed'])
+hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), random_state=CONFIG['random_seed'])
+
 
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
