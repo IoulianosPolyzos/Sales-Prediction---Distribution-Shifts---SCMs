@@ -8,7 +8,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -164,7 +164,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -317,7 +317,7 @@ import numpy as np
 
 
 
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -329,8 +329,10 @@ std = df_raw.groupby("Is_Christmas_Season")["unit_sales"].std()
 print(" unit_sales Mean by Christmas Season:\n", means)
 print(" unit_sales Std by Christmas Season:\n", std)
 
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 df_encoded = df_encoded.fillna(0)
 
@@ -461,7 +463,7 @@ import numpy as np
 
 
 
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -473,8 +475,10 @@ df_raw['store_nbr'] = df_raw['store_nbr'].astype(int)
 
 source_df = df_raw[df_raw['store_nbr'].between(1, 41)].copy()
 target_df = df_raw[df_raw['store_nbr'].between(41, 55)].copy()
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 source_df = pd.get_dummies(source_df, columns=cols_to_encode)
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
@@ -599,7 +603,7 @@ import numpy as np
 
 
 
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -624,8 +628,10 @@ print("Season 3 -> mean:", mean_3, ", std:", std_3)
 # Target Domain: Season 3 (Out-of-Distribution)
 source_df = df_raw[df_raw['Season'].isin([1, 2,4])].copy()
 target_df = df_raw[df_raw['Season'].isin([3])].copy()
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 source_df = pd.get_dummies(source_df, columns=cols_to_encode)
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
@@ -755,7 +761,7 @@ import numpy as np
 
 
 
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 
 print(" Loading Favorita Dataset from Parquet...")
@@ -772,8 +778,10 @@ df_raw.columns = df_raw.columns.str.strip()
 # Target Domain: Store Types A and B (Out-of-Distribution)
 source_df = df_raw[df_raw['store_type'].isin(['C','B','D','E'])].copy()
 target_df = df_raw[df_raw['store_type'].isin(['A'])].copy()
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 source_df = pd.get_dummies(source_df, columns=cols_to_encode)
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
@@ -902,7 +910,7 @@ import numpy as np
 
 
 
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -914,8 +922,10 @@ std = df_raw.groupby("IsHoliday")["unit_sales"].std()
 print(" unit_sales Mean by IsHoliday:\n", means)
 print(" unit_sales Std by IsHoliday:\n", std)
 
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 df_encoded = df_encoded.fillna(0)
 

@@ -7,7 +7,7 @@ import numpy as np
 
 
 # Path to specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -90,7 +90,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -169,7 +169,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -180,8 +180,10 @@ df_raw.columns = df_raw.columns.str.strip()
 
 
 print(" Applying Manual One-Hot Encoding...")
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 df_encoded = df_encoded.fillna(0)
 
@@ -251,7 +253,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -262,16 +264,15 @@ df_raw.columns = df_raw.columns.str.strip()
 
 
 print(" Applying Manual One-Hot Encoding...")
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 
 
 target_df = df_raw[df_raw['store_nbr'].between(41, 55)].copy()
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-cols_to_encode = [
-        "city", "state", "store_type", "family", "weather_condition",
-        "store_nbr", "cluster", "class"
-    ]
+
 
 
 
@@ -333,7 +334,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -345,15 +346,14 @@ df_raw.columns = df_raw.columns.str.strip()
 
 print(" Applying Manual One-Hot Encoding...")
 
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 
 target_df = df_raw[df_raw['Season'].isin([3])].copy()
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-cols_to_encode = [
-        "city", "state", "store_type", "family", "weather_condition",
-        "store_nbr", "cluster", "class"
-    ]
+
 
 
 
@@ -415,7 +415,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -427,15 +427,14 @@ df_raw.columns = df_raw.columns.str.strip()
 
 print(" Applying Manual One-Hot Encoding...")
 
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
-
-target_df = df_raw[df_raw['store_type'].isin(['A','B'])].copy()
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
+
+target_df = df_raw[df_raw['store_type'].isin(['A','B'])].copy()
+target_df = pd.get_dummies(target_df, columns=cols_to_encode)
+
 
 
 
@@ -497,7 +496,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -508,8 +507,10 @@ df_raw.columns = df_raw.columns.str.strip()
 
 
 print(" Applying Manual One-Hot Encoding...")
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
+cols_to_encode = [
+        "city", "state", "store_type", "family", "weather_condition",
+        "store_nbr", "cluster", "class"
+    ]
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 df_encoded = df_encoded.fillna(0)
 
