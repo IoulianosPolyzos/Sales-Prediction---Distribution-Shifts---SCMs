@@ -440,14 +440,14 @@ run_whyshift_region_analysis(
 run_whyshift_region_analysis(
     df_source=source_sample, df_target=synth_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_CITY_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="FAV_SOURCE_SYNTHETIC_CITY_REGION.png"
 )
 
 # 3. Source vs Hybrid
 run_whyshift_region_analysis(
     df_source=source_sample, df_target=hybrid_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_CITY_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="FAV_SOURCE_HYBRID_CITY_REGION.png"
 )
 
 # 4. Hybrid vs Target

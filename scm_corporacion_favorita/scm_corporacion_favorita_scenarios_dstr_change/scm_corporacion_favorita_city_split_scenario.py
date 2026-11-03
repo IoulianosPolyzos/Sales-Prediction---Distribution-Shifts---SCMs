@@ -307,30 +307,30 @@ test_sample = test_df.sample(n=min(n_whyshift, len(test_df)), random_state=CONFI
 train_sample = train_df.sample(n=min(n_whyshift, len(source_df)), random_state=CONFIG['random_seed'])
 hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), random_state=CONFIG['random_seed'])
 
-# 1. Target vs Synthetic
+# 1. Test vs Synthetic
 run_whyshift_region_analysis(
     df_source=synth_sample, df_target=test_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="FAV_TARGET_SYNTHETIC_CITY_REGION.png"
+    source_name="Synthetic", target_name="Test", plot_filename="FAV_DTEST_SYNTHETIC_CITY_REGION.png"
 )
 
 # 2. Dtrain vs Synthetic
 run_whyshift_region_analysis(
     df_source=train_sample, df_target=synth_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Dtrain", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_CITY_REGION.png"
+    source_name="Dtrain", target_name="Synthetic", plot_filename="FAV_DTRAIN_SYNTHETIC_CITY_REGION.png"
 )
 
 # 3. Dtrain vs Hybrid
 run_whyshift_region_analysis(
     df_source=train_sample, df_target=hybrid_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Dtrain", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_CITY_REGION.png"
+    source_name="Dtrain", target_name="Hybrid", plot_filename="FAV_DTRAIN_HYBRID_CITY_REGION.png"
 )
 
-# 4. Hybrid vs Target
+# 4. Hybrid vs Test
 run_whyshift_region_analysis(
     df_source=hybrid_sample, df_target=test_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="FAV_HYBRID_TARGET_CITY_REGION.png"
+    source_name="Hybrid", target_name="Test", plot_filename="FAV_HYBRID_TEST_CITY_REGION.png"
 )

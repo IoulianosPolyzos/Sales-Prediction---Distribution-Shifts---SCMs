@@ -370,33 +370,33 @@ print(f"  - R²: {r2_hbr:.2f}")
 # %%
 print("\nPART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
-# In the mixed setting, Dtrain acts as our baseline "Source" and Dtest acts as our true "Target"
-# because Dtrain is 90% Source Cities, and Dtest is 90% Target Cities.
+target_col = 'Weekly_Sales'
 
-# 1. Target vs Synthetic
+
+# 1. Test vs Synthetic
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=test_df,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CITY_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TEST_SYNTHETIC_CITY_MIXED_REGION.png"
 )
 
-# 2. Real vs Synthetic
+# 2. Dtrain vs Synthetic
 run_whyshift_region_analysis(
     df_source=train_df, df_target=synthetic_dataset,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_CITY_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Dtrain", target_name="Synthetic", plot_filename="WALMART_TRAIN_SYNTHETIC_CITY_MIXED_REGION.png"
 )
 
-# 3. Real vs Hybrid
+# 3. Dtrain vs Hybrid
 run_whyshift_region_analysis(
     df_source=train_df, df_target=hybrid_dataset,
-    target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_CITY_MIXED_REGION.png"
+    target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
+    source_name="Dtrain", target_name="Hybrid", plot_filename="WALMART_TRAIN_HYBRID_CITY_MIXED_REGION.png"
 )
 
-# 4. Hybrid vs Target
+# 4. Hybrid vs Test
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=test_df,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CITY_MIXED_REGION.png"
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TEST_CITY_MIXED_REGION.png"
 )

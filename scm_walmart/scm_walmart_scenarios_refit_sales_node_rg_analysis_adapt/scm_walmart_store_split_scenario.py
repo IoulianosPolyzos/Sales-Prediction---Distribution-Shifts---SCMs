@@ -452,18 +452,18 @@ run_whyshift_region_analysis(
     source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_STORE_REGION.png"
 )
 
-# 2. Real vs Synthetic
+# 2. Source vs Synthetic
 run_whyshift_region_analysis(
     df_source=source_df, df_target=synthetic_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Synthetic", plot_filename="WALMART_REAL_SYNTHETIC_STORE_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_STORE_REGION.png"
 )
 
-# 3. Real vs Hybrid
+# 3. Source vs Hybrid
 run_whyshift_region_analysis(
     df_source=source_df, df_target=hybrid_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Hybrid", plot_filename="WALMART_REAL_HYBRID_STORE_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_STORE_REGION.png"
 )
 
 # 4. Hybrid vs Target
