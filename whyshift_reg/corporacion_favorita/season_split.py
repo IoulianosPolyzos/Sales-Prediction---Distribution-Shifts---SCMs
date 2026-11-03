@@ -37,7 +37,6 @@ std_3 = seasons_3.std()
 print(f"\nSeasons 1, 2, 4 (Source) -> mean: {mean_124:.4f}, std: {std_124:.4f}")
 print(f"Season 3 (Target) -> mean: {mean_3:.4f}, std: {std_3:.4f}")
 
-# Εδώ κρατάμε ΚΑΙ το store_type ΚΑΙ το cluster, γιατί υπάρχουν σε όλες τις εποχές
 cols_to_encode = ['city', 'state', 'family', 'store_type', 'cluster', 'weather_condition']
 print("\n>>> One-Hot Encoding categorical variables...")
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
@@ -47,7 +46,6 @@ df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 source_df = df_encoded[df_encoded['domain'] == 'Source'].copy()
 target_df = df_encoded[df_encoded['domain'] == 'Target'].copy()
 
-# Αφαιρούμε ΟΛΑ τα temporal features που προδίδουν την εποχή/μήνα
 drop_cols = [
     'unit_sales', 'date', 'id', 'domain', 'Season',
     'Month', 'WeekOfYear', 'Quarter', 'Year_Progress', 'Month_Progress',

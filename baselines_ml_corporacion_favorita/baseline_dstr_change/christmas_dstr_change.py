@@ -32,6 +32,9 @@ target_df = df_encoded[df_encoded['Is_Christmas_Season'] == 1].copy()
 
 # Define feature columns (exclude target, proxies, and the splitting variable)
 TARGET = "unit_sales"
+
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
 # Features / target
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]

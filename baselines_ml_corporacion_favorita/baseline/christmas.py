@@ -1,10 +1,8 @@
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score,mean_absolute_percentage_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, mean_absolute_percentage_error
 from sklearn.model_selection import train_test_split
 from lightgbm import LGBMRegressor
 import pandas as pd
 import numpy as np
-
-
 
 PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
@@ -30,16 +28,22 @@ df_encoded = df_encoded.fillna(0)
 source_df = df_encoded[df_encoded['Is_Christmas_Season'] == 0].copy()
 target_df = df_encoded[df_encoded['Is_Christmas_Season'] == 1].copy()
 
-# Define feature columns (exclude target, proxies, and the splitting variable)
+
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+
+adaptation_df, holdout_test_df = train_test_split(
+    target_df,
+    test_size=0.20,
+    random_state=42
+)
+
 TARGET = "unit_sales"
 
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]
 
-X_target = target_df.drop(columns=[TARGET])
-y_target = target_df[TARGET]
-
-from lightgbm import LGBMRegressor
+X_target = holdout_test_df.drop(columns=[TARGET])
+y_target = holdout_test_df[TARGET]
 
 lgb_params = {
     'n_estimators': 300,
@@ -55,11 +59,11 @@ print(" Training LightGBM on source domain...")
 model.fit(X_source, y_source)
 y_pred = model.predict(X_target)
 
-
 mae = mean_absolute_error(y_target, y_pred)
 rmse = np.sqrt(mean_squared_error(y_target, y_pred))
 mape = mean_absolute_percentage_error(y_target,y_pred)
 r2 = r2_score(y_target, y_pred)
+
 print(f"MAE : {mae:.2f}")
 print(f"RMSE: {rmse:.2f}")
 print(f"MAPE: {mape:.2f}")

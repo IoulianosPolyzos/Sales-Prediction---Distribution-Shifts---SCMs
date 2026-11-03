@@ -31,25 +31,32 @@ df_encoded = df_encoded.fillna(0)
 source_df = df_encoded[df_encoded['IsHoliday'] == 0].copy()
 target_df = df_encoded[df_encoded['IsHoliday'] == 1].copy()
 
-TARGET = "unit_sales"
+source_df = source_df.sample(n=min(500000, len(source_df)), random_state=42).reset_index(drop=True)
 
-X_source = source_df.drop(columns=[TARGET])
-y_source = source_df[TARGET]
 
-X_target = target_df.drop(columns=[TARGET])
-y_target = target_df[TARGET]
-
-X_target_train, X_target_test, y_target_train, y_target_test = train_test_split(
-    X_target, y_target, train_size=0.10, random_state=42
+adaptation_df, holdout_test_df = train_test_split(
+    target_df, 
+    test_size=0.90, 
+    random_state=42
 )
 
-print(f" Original Source samples (100%): {len(X_source)}")
-print(f" Target samples added to train set (10%: {len(X_target_train)}")
-print(f" Remaining Target samples for testing (90%): {len(X_target_test)}")
+adaptation_df = adaptation_df.sample(n=min(100000, len(adaptation_df)), random_state=42).reset_index(drop=True)
+holdout_test_df = holdout_test_df.reset_index(drop=True)
 
-# Combine ALL source data with the 10%portion of target data
-X_train_combined = pd.concat([X_source, X_target_train], ignore_index=True)
-y_train_combined = pd.concat([y_source, y_target_train], ignore_index=True)
+TARGET = "unit_sales"
+
+train_combined = pd.concat([source_df, adaptation_df], ignore_index=True)
+
+X_train_combined = train_combined.drop(columns=[TARGET])
+y_train_combined = train_combined[TARGET]
+
+X_target_test = holdout_test_df.drop(columns=[TARGET])
+y_target_test = holdout_test_df[TARGET]
+
+print(f" Source samples (Subsampled): {len(source_df)}")
+print(f" Target samples added to train set (Adaptation): {len(adaptation_df)}")
+print(f" Total combined training samples: {len(X_train_combined)}")
+print(f" Remaining Target samples for testing (90%): {len(X_target_test)}")
 from lightgbm import LGBMRegressor
 
 lgb_params = {

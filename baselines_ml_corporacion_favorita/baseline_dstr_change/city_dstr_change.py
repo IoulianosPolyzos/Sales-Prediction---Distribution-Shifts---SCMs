@@ -36,6 +36,8 @@ source_df = pd.get_dummies(source_df, columns=cols_to_encode)
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
 TARGET = "unit_sales"
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
 # Features / target
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]

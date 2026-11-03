@@ -34,7 +34,7 @@ from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
 # --- PATH MANAGEMENT FOR EXTERNAL UTILITIES ---
 current_dir = Path(__file__).resolve().parent
 
-# 1. utils_scm (υποθέτουμε ότι βρίσκεται 2 επίπεδα πάνω, root directory)
+
 sys.path.append(str(current_dir.parents[1]))
 from utils_scm import (
     get_all_descendants,

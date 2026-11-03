@@ -45,6 +45,10 @@ X_target_train, X_target_test, y_target_train, y_target_test = train_test_split(
     X_target, y_target, train_size=0.1, random_state=42
 )
 
+n_samples = min(100000, len(X_target_train))
+X_target_train = X_target_train.sample(n=n_samples, random_state=42)
+y_target_train = y_target_train.loc[X_target_train.index]
+
 print(f" Target samples added to train set (10%): {len(X_target_train)}")
 print(f" Remaining Target samples for testing (90%): {len(X_target_test)}")
 

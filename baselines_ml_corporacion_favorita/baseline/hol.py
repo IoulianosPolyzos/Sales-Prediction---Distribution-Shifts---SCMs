@@ -30,13 +30,23 @@ df_encoded = df_encoded.fillna(0)
 source_df = df_encoded[df_encoded['IsHoliday'] == 0].copy()
 target_df = df_encoded[df_encoded['IsHoliday'] == 1].copy()
 
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+
+adaptation_df, holdout_test_df = train_test_split(
+    target_df,
+    test_size=0.20,
+    random_state=42
+)
+# -----------------------------------------------
+
 TARGET = "unit_sales"
 
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]
 
-X_target = target_df.drop(columns=[TARGET])
-y_target = target_df[TARGET]
+
+X_target = holdout_test_df.drop(columns=[TARGET])
+y_target = holdout_test_df[TARGET]
 
 from lightgbm import LGBMRegressor
 

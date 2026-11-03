@@ -32,7 +32,8 @@ TARGET = "unit_sales"
 
 source_df = df_encoded[df_encoded['IsHoliday'] == 0].copy().reset_index(drop=True)
 target_df = df_encoded[df_encoded['IsHoliday'] == 1].copy().reset_index(drop=True)
-
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
 # Features / target
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]

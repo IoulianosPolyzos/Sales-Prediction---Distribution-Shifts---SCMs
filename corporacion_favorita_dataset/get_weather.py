@@ -25,7 +25,7 @@ ECUADOR_CITIES = {
     'Libertad': {'lat': -2.2330, 'lon': -80.9103},
     'El Carmen': {'lat': -0.2762, 'lon': -79.4593},
     'Cayambe': {'lat': 0.0400, 'lon': -78.1452},
-    'Esmeraldas': {'lat': 0.9592, 'lon': -79.6539}  # <-- Προστέθηκε
+    'Esmeraldas': {'lat': 0.9592, 'lon': -79.6539}
 }
 
 

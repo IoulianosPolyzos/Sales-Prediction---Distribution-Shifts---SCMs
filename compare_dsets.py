@@ -24,7 +24,7 @@ print(f"Columns: {len(csv_columns)}")
 for col in csv_columns:
     print(col)
 
-# Σύγκριση
+
 only_parquet = sorted(parquet_set - csv_set)
 only_csv = sorted(csv_set - parquet_set)
 

@@ -27,22 +27,21 @@ source_df = pd.get_dummies(source_df, columns=cols_to_encode)
 target_df = pd.get_dummies(target_df, columns=cols_to_encode)
 source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
 
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 
-mean_src = source_df['unit_sales'].mean()
-std_src = source_df['unit_sales'].std()
+adaptation_df, holdout_test_df = train_test_split(
+    target_df,
+    test_size=0.20,
+    random_state=42
+)
 
-mean_trg = target_df['unit_sales'].mean()
-std_trg = target_df['unit_sales'].std()
-
-print("Stores 1-40 -> mean:", mean_src, ", std:", std_src)
-print("Store 41-55 -> mean:", mean_trg, ", std:", std_trg)
 TARGET = "unit_sales"
 
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]
 
-X_target = target_df.drop(columns=[TARGET])
-y_target = target_df[TARGET]
+X_target = holdout_test_df.drop(columns=[TARGET])
+y_target = holdout_test_df[TARGET]
 
 from lightgbm import LGBMRegressor
 
