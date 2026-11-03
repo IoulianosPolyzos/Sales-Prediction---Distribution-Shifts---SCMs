@@ -322,34 +322,34 @@ target_col = 'unit_sales'
 
 n_whyshift = 100000
 synth_sample = synthetic_dataset.sample(n=min(n_whyshift, len(synthetic_dataset)), random_state=CONFIG['random_seed'])
-target_sample = test_df.sample(n=min(n_whyshift, len(test_df)), random_state=CONFIG['random_seed'])
-source_sample = train_df.sample(n=min(n_whyshift, len(source_df)), random_state=CONFIG['random_seed'])
+test_sample = test_df.sample(n=min(n_whyshift, len(test_df)), random_state=CONFIG['random_seed'])
+train_sample = train_df.sample(n=min(n_whyshift, len(source_df)), random_state=CONFIG['random_seed'])
 hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), random_state=CONFIG['random_seed'])
 
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
-    df_source=synthetic_dataset, df_target=test_df,
+    df_source=synth_sample, df_target=test_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Synthetic", target_name="Target", plot_filename="FAV_TARGET_SYNTHETIC_TYPE_REGION.png"
 )
 
-# 2. Real vs Synthetic
+# 2. Dtrain vs Synthetic
 run_whyshift_region_analysis(
-    df_source=train_df, df_target=synthetic_dataset,
+    df_source=train_sample, df_target=synth_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_TYPE_REGION.png"
+    source_name="Dtrain", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_TYPE_REGION.png"
 )
 
-# 3. Real vs Hybrid
+# 3. Dtrain vs Hybrid
 run_whyshift_region_analysis(
-    df_source=train_df, df_target=hybrid_dataset,
+    df_source=train_sample, df_target=hybrid_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Dtrain", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_TYPE_REGION.png"
+    source_name="Dtrain", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_TYPE_REGION.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
-    df_source=hybrid_dataset, df_target=test_df,
+    df_source=hybrid_sample, df_target=test_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Hybrid", target_name="Target", plot_filename="FAV_HYBRID_TARGET_TYPE_REGION.png"
 )

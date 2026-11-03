@@ -416,6 +416,7 @@ print(results_df)
 # %%
 print("PART 10: WHYSHIFT REGION ANALYSIS (DEGRADATION & RISK REGIONS)")
 
+target_col = 'unit_sales'
 n_whyshift = 100000
 synth_sample = synthetic_dataset.sample(n=min(n_whyshift, len(synthetic_dataset)), random_state=CONFIG['random_seed'])
 target_sample = holdout_test_df.sample(n=min(n_whyshift, len(holdout_test_df)), random_state=CONFIG['random_seed'])
@@ -425,28 +426,28 @@ hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), ra
 
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
-    df_source=synthetic_dataset, df_target=holdout_test_df,
+    df_source=synth_sample, df_target=target_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Synthetic", target_name="Target", plot_filename="FAV_TARGET_SYNTHETIC_SEASON_REGION.png"
 )
 
-# 2. Real vs Synthetic
+# 2. Source vs Synthetic
 run_whyshift_region_analysis(
-    df_source=source_df, df_target=synthetic_dataset,
+    df_source=source_sample, df_target=synth_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_SEASON_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_SEASON_REGION.png"
 )
 
-# 3. Real vs Hybrid
+# 3. Source vs Hybrid
 run_whyshift_region_analysis(
-    df_source=source_df, df_target=hybrid_dataset,
+    df_source=source_sample, df_target=hybrid_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_SEASON_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_SEASON_REGION.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
-    df_source=hybrid_dataset, df_target=holdout_test_df,
+    df_source=hybrid_sample, df_target=target_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Hybrid", target_name="Target", plot_filename="FAV_HYBRID_TARGET_SEASON_REGION.png"
 )

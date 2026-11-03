@@ -428,28 +428,28 @@ source_sample = source_df.sample(n=min(n_whyshift, len(source_df)), random_state
 hybrid_sample = hybrid_dataset.sample(n=min(n_whyshift, len(hybrid_dataset)), random_state=CONFIG['random_seed'])
 # 1. Target vs Synthetic
 run_whyshift_region_analysis(
-    df_source=synthetic_dataset, df_target=holdout_test_df,
+    df_source=synth_sample, df_target=target_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Synthetic", target_name="Target", plot_filename="FAV_TARGET_SYNTHETIC_WEATHER_REGION.png"
 )
 
-# 2. Real vs Synthetic
+# 2. Source vs Synthetic
 run_whyshift_region_analysis(
-    df_source=source_df, df_target=synthetic_dataset,
+    df_source=source_sample, df_target=synth_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_WEATHER_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="FAV_REAL_SYNTHETIC_WEATHER_REGION.png"
 )
 
-# 3. Real vs Hybrid
+# 3. Source vs Hybrid
 run_whyshift_region_analysis(
-    df_source=source_df, df_target=hybrid_dataset,
+    df_source=source_sample, df_target=hybrid_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Real Source", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_WEATHER_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="FAV_REAL_HYBRID_WEATHER_REGION.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
-    df_source=hybrid_dataset, df_target=holdout_test_df,
+    df_source=hybrid_sample, df_target=target_sample,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
     source_name="Hybrid", target_name="Target", plot_filename="FAV_HYBRID_TARGET_WEATHER_REGION.png"
 )
