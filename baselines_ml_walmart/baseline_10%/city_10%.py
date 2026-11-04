@@ -20,15 +20,14 @@ df_raw.columns = df_raw.columns.str.strip()
 source_cities = ['Houston', 'Philadelphia', 'Phoenix', 'San Jose', 'Jacksonville', 'Austin']
 target_cities = ['New York', 'Los Angeles', 'Chicago']
 
-print(" Applying Manual One-Hot Encoding...")
+cols_to_encode = ["city", "Type", "weather_condition", "Store", "Dept"]
+
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
 
 source_df = df_raw[df_raw['city'].isin(source_cities)].copy()
 target_df = df_raw[df_raw['city'].isin(target_cities)].copy()
-cols_to_encode = ["city", "Type", "weather_condition", "Store", "Dept"]
-
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
 
 TARGET = "Weekly_Sales"
 
@@ -66,7 +65,7 @@ lgb_params = {
 model = LGBMRegressor(**lgb_params)
 
 print(" Training LightGBM on ALL source + 10%target domain...")
-model.fit(X_train_combined, y_train_combined)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 
 print(" Predicting on the remaining 90%target test set...")
 # Predict ONLY on the 90%test portion to avoid data leakage

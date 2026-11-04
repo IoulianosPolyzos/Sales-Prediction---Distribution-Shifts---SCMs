@@ -13,17 +13,15 @@ print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
 df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
-df_raw['Store'] = df_raw['Store'].astype(int)
-
-
-
-source_df = df_raw[df_raw['Store'].between(1, 30)].copy()
-target_df = df_raw[df_raw['Store'].between(31, 45)].copy()
 cols_to_encode = ["city", "Type", "weather_condition",
                     "Store", "Dept"]
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
+source_df = df_raw[df_raw['Store'].astype(int).between(1, 30)].copy()
+target_df = df_raw[df_raw['Store'].astype(int).between(31, 45)].copy()
 
 
 mean_src = source_df['Weekly_Sales'].mean()
@@ -55,7 +53,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
-model.fit(X_source, y_source)
+model.fit(X_source, y_source, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target)
 
 

@@ -286,7 +286,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 
-print(" Training LightGBM on ALL source + 10% target domain...")
+
 X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
 X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
 

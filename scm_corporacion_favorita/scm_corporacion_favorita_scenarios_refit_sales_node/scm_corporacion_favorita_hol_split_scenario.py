@@ -279,7 +279,7 @@ X_syn = synthetic_dataset.drop(columns=['unit_sales'])
 y_syn = synthetic_dataset['unit_sales']
 
 ml_model_syn = LGBMRegressor(**lgb_params)
-ml_model_syn.fit(X_syn, y_syn)
+ml_model_syn.fit(X_syn, y_syn, categorical_feature=categorical_nodes)
 
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['unit_sales'].mean():.4f}")
@@ -341,7 +341,7 @@ y_hybrid = hybrid_dataset['unit_sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-ml_model_hbr.fit(X_hybrid, y_hybrid)
+ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['unit_sales'].mean():.4f}")
 print(f"  Std:  {source_df['unit_sales'].std():.4f}")

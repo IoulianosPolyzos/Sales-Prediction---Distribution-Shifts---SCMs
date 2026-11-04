@@ -327,7 +327,7 @@ X_syn = synthetic_dataset.drop(columns=['Weekly_Sales'])
 y_syn = synthetic_dataset['Weekly_Sales']
 
 ml_model_syn = LGBMRegressor(**lgb_params)
-ml_model_syn.fit(X_syn, y_syn)
+ml_model_syn.fit(X_syn, y_syn, categorical_feature=categorical_nodes)
 
 print(f"\nTRAIN (Mixed) DATA STATS :")
 print(f"  Mean: {train_df['Weekly_Sales'].mean():.4f}")
@@ -383,7 +383,7 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
-ml_model_hbr.fit(X_hybrid, y_hybrid)
+ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
 
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")
 y_pred_hbr = ml_model_hbr.predict(X_test)

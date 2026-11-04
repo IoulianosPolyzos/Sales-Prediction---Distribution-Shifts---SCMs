@@ -125,7 +125,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 
-print(" Training LightGBM on ALL source + 10% target domain...")
+
 model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 
 

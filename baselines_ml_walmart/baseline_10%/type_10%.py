@@ -19,15 +19,17 @@ df_raw.columns = df_raw.columns.str.strip()
 # Manual One-Hot Encoding
 
 
+cols_to_encode = ["city", "Type", "weather_condition",
+                  "Store", "Dept"]
+
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
 # Source Domain: Store Type C (In-Distribution)
 # Target Domain: Store Types A and B (Out-of-Distribution)
 source_df = df_raw[df_raw['Type'].isin(['C'])].copy()
 target_df = df_raw[df_raw['Type'].isin(['A', 'B'])].copy()
-cols_to_encode = ["city", "Type", "weather_condition",
-                  "Store", "Dept"]
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
 
 # 'Weekly_Sales' is dropped from features because it's our target now
 TARGET = "Weekly_Sales"
@@ -63,7 +65,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
-model.fit(X_train_combined, y_train_combined)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target_test)
 from sklearn.metrics import mean_squared_error, r2_score
 

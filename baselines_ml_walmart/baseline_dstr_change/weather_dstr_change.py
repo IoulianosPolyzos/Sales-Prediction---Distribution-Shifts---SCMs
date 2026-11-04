@@ -21,15 +21,14 @@ source_weather = ['Clouds', 'Rain', 'Snow']
 target_weather = ['Clear']
 
 
-source_df = df_raw[df_raw['weather_condition'].isin(source_weather)].copy()
-target_df = df_raw[df_raw['weather_condition'].isin(target_weather)].copy()
-
-# 2. ONE-HOT encoding
 cols_to_encode = ["city", "Type", "weather_condition", "Store", "Dept"]
 
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
+source_df = df_raw[df_raw['weather_condition'].isin(source_weather)].copy()
+target_df = df_raw[df_raw['weather_condition'].isin(target_weather)].copy()
 
 TARGET = "Weekly_Sales"
 
@@ -125,13 +124,8 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 
-print(" Training LightGBM on ALL source + 10% target domain...")
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
 
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-model.fit(X_train_combined, y_train_combined)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 
 
 # Predict ONLY on the 90% test portion to avoid data leakage

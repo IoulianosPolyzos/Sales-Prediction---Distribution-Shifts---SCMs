@@ -21,13 +21,15 @@ print(" Weekly_Sales Std by Christmas Season:\n", std)
 
 cols_to_encode = ["city", "Type", "weather_condition",
                   "Store", "Dept"]
-df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
-df_encoded = df_encoded.fillna(0)
+
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
 
 # Source Domain: Normal Days (In-Distribution)
 # Target Domain: Holidays (Out-of-Distribution)
-source_df = df_encoded[df_encoded['Is_Christmas_Season'] == 0].copy()
-target_df = df_encoded[df_encoded['Is_Christmas_Season'] == 1].copy()
+source_df = df_raw[df_raw['Is_Christmas_Season'] == 0].copy()
+target_df = df_raw[df_raw['Is_Christmas_Season'] == 1].copy()
 
 # Define feature columns (exclude target, proxies, and the splitting variable)
 TARGET = "Weekly_Sales"
@@ -63,7 +65,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
-model.fit(X_train_combined, y_train_combined)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target_test)
 from sklearn.metrics import mean_squared_error, r2_score
 

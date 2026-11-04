@@ -14,17 +14,17 @@ print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
 df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
-df_raw['Store'] = df_raw['Store'].astype(int)
+cols_to_encode = ["city", "Type", "weather_condition", "Store", "Dept"]
 
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
 
+source_df = df_raw[df_raw['Store'].astype(int).between(1, 30)].copy()
+target_df = df_raw[df_raw['Store'].astype(int).between(31, 45)].copy()
 
-source_df = df_raw[df_raw['Store'].between(1, 30)].copy()
-target_df = df_raw[df_raw['Store'].between(31, 45)].copy()
-cols_to_encode = ["city", "Type", "weather_condition",
-                    "Store", "Dept"]
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+TARGET = "Weekly_Sales"
+
 # Features / target
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]
@@ -118,13 +118,8 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
-
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-model.fit(X_train_combined, y_train_combined)
+print(" Training LightGBM on Dtrain...")
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_test_combined)
 from sklearn.metrics import mean_squared_error, r2_score
 
