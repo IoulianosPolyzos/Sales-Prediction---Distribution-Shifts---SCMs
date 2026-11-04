@@ -9,7 +9,7 @@ import numpy as np
 PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
-df_raw = df_raw.drop(columns=[ "Date","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
 seasons_124 = df_raw[df_raw['Season'].isin([1,2,4])]['unit_sales']

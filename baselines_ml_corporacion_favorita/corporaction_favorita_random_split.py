@@ -16,7 +16,7 @@ PARQUET_PATH = r"../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
-df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
 

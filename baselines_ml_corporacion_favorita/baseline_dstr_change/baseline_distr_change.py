@@ -17,7 +17,7 @@ df_raw = pd.read_parquet(PARQUET_PATH)
 
 
 
-df_raw = df_raw.drop(columns=["Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=["date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
 # Define domains based on city
@@ -170,7 +170,7 @@ print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
 df_raw = df_raw.drop(
-    columns=[ "Date", "Season", "DayOfWeek", "Month",
+    columns=[ "date", "Season", "DayOfWeek", "Month",
              "WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
@@ -322,7 +322,7 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
-df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 means = df_raw.groupby("Is_Christmas_Season")["unit_sales"].mean()
 std = df_raw.groupby("Is_Christmas_Season")["unit_sales"].std()
@@ -467,7 +467,7 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
-df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 df_raw['store_nbr'] = df_raw['store_nbr'].astype(int)
 
@@ -607,7 +607,7 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
-df_raw = df_raw.drop(columns=[ "Date","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
 seasons_124 = df_raw[df_raw['Season'].isin([1,2,4])]['unit_sales']
@@ -768,7 +768,7 @@ print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
 # Clean up columns
-df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
 # Manual One-Hot Encoding
@@ -915,7 +915,7 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
-df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
+df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 means = df_raw.groupby("IsHoliday")["unit_sales"].mean()
 std = df_raw.groupby("IsHoliday")["unit_sales"].std()
