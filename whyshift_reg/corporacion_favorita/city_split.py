@@ -20,7 +20,7 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(">>> Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
-# Define domains based on city
+
 source_cities = ['Quito', 'Guayaquil', 'Cuenca', 'Santo Domingo', 'Machala', 'Loja', 'Manta']
 
 print(f">>> Assigning domains (Source: {len(source_cities)} major cities, Target: all others)...")

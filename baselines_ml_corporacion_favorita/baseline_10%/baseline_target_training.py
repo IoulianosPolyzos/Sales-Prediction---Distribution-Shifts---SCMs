@@ -15,7 +15,7 @@ df_raw = pd.read_parquet(PARQUET_PATH)
 df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-# Define domains based on city
+
 source_cities = ["Quito", "Guayaquil", "Cuenca", "Santo Domingo", "Machala", "Loja", "Manta"]
 target_cities = [c for c in df_raw['city'].unique() if c not in source_cities]
 

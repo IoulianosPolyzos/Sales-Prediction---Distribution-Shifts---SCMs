@@ -17,7 +17,7 @@ df_raw = df_raw.drop(
              "WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-# Define domains based on city
+
 source_cities = ["Quito", "Guayaquil", "Cuenca", "Santo Domingo", "Machala", "Loja", "Manta"]
 target_cities = [c for c in df_raw['city'].unique() if c not in source_cities]
 
@@ -103,7 +103,7 @@ df_raw = df_raw.drop(
              "WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-# Define domains based on city
+
 source_weather = ['Clouds', 'Rain', 'Snow']
 target_weather = ['Clear']
 

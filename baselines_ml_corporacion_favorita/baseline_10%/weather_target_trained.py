@@ -15,7 +15,7 @@ df_raw = pd.read_parquet(PARQUET_PATH)
 df_raw = df_raw.drop(columns=[ "date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-target_weather = ['Clear']
+target_weather = ['clear']
 
 print(" Converting categorical columns to 'category' dtype...")
 cols_to_encode = [

@@ -15,9 +15,9 @@ df_raw = df_raw.drop(
              "WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-# Define domains based on city
-source_weather = ['Clouds', 'Rain', 'Snow']
-target_weather = ['Clear']
+
+source_weather = ['clouds','rain','snow']
+target_weather = ['clear']
 
 print(" Converting categorical columns to 'category' dtype...")
 

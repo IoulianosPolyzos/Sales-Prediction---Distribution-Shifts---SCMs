@@ -363,7 +363,7 @@ df_raw = pd.read_csv(CSV_PATH)
 
 df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
-# Define domains based on city
+
 source_cities = ['Houston', 'Philadelphia', 'Phoenix', 'San Jose', 'Jacksonville', 'Austin']
 target_cities = ['New York', 'Los Angeles', 'Chicago']
 
@@ -434,7 +434,7 @@ df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"]
 df_raw.columns = df_raw.columns.str.strip()
 
 
-# Define domains based on city
+
 source_weather = ['Clouds','Rain','Snow']
 target_weather = ['Clear']
 
