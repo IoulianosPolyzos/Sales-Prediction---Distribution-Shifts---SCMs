@@ -4,9 +4,20 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeRegressor, plot_tree
 import lightgbm as lgbm
-
 import sys
-import os
+import yaml
+from pathlib import Path
+current_file = Path(__file__).resolve()
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
 from whyshift_reg.disde_reg import degradation_decomp_regression
 
 PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
@@ -14,42 +25,39 @@ PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(">>> Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
-print(">>> Assigning domains (Target: A, Source: B/C/D/E)...")
-df_raw['domain'] = np.where(df_raw['store_type'] == 'A', 'Target',
-                   np.where(df_raw['store_type'].isin(['B', 'C', 'D', 'E']), 'Source', 'Other'))
+print(">>> Assigning domains (Target: Stores 41-54, Source: Stores 1-40)...")
+df_raw['domain'] = np.where(df_raw['store_nbr'].between(41, 54), 'Target',
+                   np.where(df_raw['store_nbr'].between(1, 40), 'Source', 'Other'))
 
 df_raw = df_raw[df_raw['domain'] != 'Other']
 
-print(">>> Performing Stratified Sampling for Store Types...")
+print(">>> Performing Stratified Sampling for Stores...")
 df_raw = df_raw.groupby('domain', group_keys=False).apply(
     lambda x: x.sample(n=min(len(x), 1500000), random_state=42)
 ).reset_index(drop=True)
 
 print(f"Sampled shape: {df_raw.shape}")
-print("Rows per domain:")
-print(df_raw['domain'].value_counts())
+print("Rows per domain:\n", df_raw['domain'].value_counts())
 
-stores_a = df_raw[df_raw['domain'] == 'Target']['unit_sales']
-stores_bcde = df_raw[df_raw['domain'] == 'Source']['unit_sales']
+stores_source = df_raw[df_raw['domain'] == 'Source']['unit_sales']
+stores_target = df_raw[df_raw['domain'] == 'Target']['unit_sales']
 
-print(f"\nStore A (Target) -> mean: {stores_a.mean():.4f}, std: {stores_a.std():.4f}")
-print(f"Stores B, C, D, E (Source) -> mean: {stores_bcde.mean():.4f}, std: {stores_bcde.std():.4f}")
+print(f"\nStores 1-40 (Source) -> mean: {stores_source.mean():.4f}, std: {stores_source.std():.4f}")
+print(f"Stores 41-54 (Target) -> mean: {stores_target.mean():.4f}, std: {stores_target.std():.4f}")
 
-cols_to_encode = ['city', 'state', 'family', 'weather_condition']
+cols_to_encode = ['family', 'weather_condition']
 print("\n>>> One-Hot Encoding categorical variables...")
 df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
 
-# Source Domain: Store Type C (In-Distribution)
-# Target Domain: Store Types A and B (Out-of-Distribution)
+# Source Domain: Stores 1-40
+# Target Domain: Stores 41-54
 source_df = df_encoded[df_encoded['domain'] == 'Source'].copy()
 target_df = df_encoded[df_encoded['domain'] == 'Target'].copy()
 
+
 drop_cols = [
-    'unit_sales', 'date', 'id', 'store_type', 'domain','cluster'
-    'IsHoliday', 'holiday_proximity', 'is_near_holiday', 'holiday_weight', 'Is_Christmas_Season',
-    'Month', 'WeekOfYear', 'Quarter', 'Season', 'Year_Progress', 'Month_Progress',
-    'WeekOfYear_sin', 'WeekOfYear_cos', 'Month_sin', 'Month_cos', 'Season_sin', 'Season_cos',
-    'Is_Month_Start', 'Is_Month_End', 'DayOfWeek', 'DayOfWeek_sin', 'DayOfWeek_cos'
+    'unit_sales', 'date', 'id', 'domain',
+    'store_nbr', 'city', 'state', 'store_type', 'cluster'
 ]
 
 feature_names = [c for c in source_df.columns if c not in drop_cols]
@@ -74,6 +82,7 @@ y_source_test = y_source_full[id_test_idx]
 print(f"\nFeatures used: {len(feature_names)}")
 
 # Split Target
+np.random.seed(42)
 perm_target = np.random.permutation(len(X_target))
 train_target = perm_target[:int(0.7 * len(X_target))]
 id_test_target = perm_target[int(0.7 * len(X_target)):]
@@ -103,7 +112,7 @@ p2p, q2q, p2s, s2q = degradation_decomp_regression(
     X_source_test, y_source_test,
     X_target_test, y_target_test,
     model, data_sum=100000, domain_classifier=reg_domain_classifier, K=8,
-    draw_calibration=True, save_calibration_png='favorita_store_type_regression_calibration.png'
+    draw_calibration=True, save_calibration_png='favorita_store_regression_calibration.png'
 )
 
 total_degradation = q2q - p2p
@@ -115,8 +124,8 @@ total_x_shift = x_shift_P + x_shift_Q
 
 print(f"Source MAE (p2p): {p2p:.4f}")
 print(f"Target MAE (q2q): {q2q:.4f}")
-print(f"p2s: expected Source Error on Sx (Reweighted Source Error)  : {p2s:.4f}")
-print(f"s2q: expected Target Error on Sx (Reweighted Target Error)  : {s2q:.4f}")
+print(f"p2s: expected Source Error on Sx (Reweighted Source Error): {p2s:.4f}")
+print(f"s2q: expected Target Error on Sx (Reweighted Target Error): {s2q:.4f}")
 print(f"Total Degradation: {total_degradation:.4f}")
 print(f"Y|X Shift: {yx_shift:.4f}")
 print(f"X Shift (P side): {x_shift_P:.4f}")
@@ -132,7 +141,7 @@ from whyshift.region_analysis import shared_reweight
 
 wA, wB, new_X, new_weights = shared_reweight(X_source_train, X_train_target, K=8)
 
-# Train separate regressors
+# Ορισμός των lgbm params που έλειπαν
 lgb_params = {
     'n_estimators': 300,
     'learning_rate': 0.1,
@@ -182,13 +191,13 @@ ax.bar(["Decomposition"], [norm_y], bottom=base_val, color='orange', label="Conc
 ax.bar(["Decomposition"], [norm_p], bottom=base_val + norm_y, color='#AA0000', label="Covariate Shift (X) (P)")
 ax.bar(["Decomposition"], [norm_q], bottom=base_val + norm_y + norm_p, color='red', label="Covariate Shift (X) (Q)")
 
-ax.set_title("Favorita Sales: Store-Type Decomposition (Regression DISDE)")
+ax.set_title("Favorita Sales: Store Decomposition (Regression DISDE)")
 ax.set_ylabel("MAE")
 ax.legend()
 plt.tight_layout()
-plt.savefig('favorita_regression_type_decomposition.png')
+plt.savefig('favorita_regression_store_decomposition.png')
 
 plt.figure(figsize=(25,12))
 plot_tree(region_tree, filled=True, feature_names=feature_names, fontsize=10, precision=2)
-plt.title("Risk Regions (Prediction Disagreement) - Store-Type Regression")
-plt.savefig('favorita_regression_risk_tree_type.png', bbox_inches='tight')
+plt.title("Risk Regions (Prediction Disagreement) - Store Regression")
+plt.savefig('favorita_regression_risk_tree_store.png', bbox_inches='tight')
