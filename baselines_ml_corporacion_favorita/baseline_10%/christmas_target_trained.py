@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-# Path to specific Walmart CSV file
+# Path to specific Corporacion Favorita Parquet file
 PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
@@ -13,21 +13,17 @@ df_raw = pd.read_parquet(PARQUET_PATH)
 df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
 
-# Define domains based on city
-source_cities = ["Quito", "Guayaquil", "Cuenca", "Santo Domingo", "Machala", "Loja", "Manta"]
-target_cities = [c for c in df_raw['city'].unique() if c not in source_cities]
+print(" Converting categorical columns to 'category' dtype...")
 
-print(" Applying Manual One-Hot Encoding...")
-
-
-target_df = df_raw[df_raw['city'].isin(target_cities)].copy()
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
 
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
 
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
+target_df = df_raw[df_raw['Is_Christmas_Season'] == 1].copy()
 
 
 TARGET = "unit_sales"
@@ -67,7 +63,7 @@ lgb_params = {
 model = LGBMRegressor(**lgb_params)
 
 print(" Training LightGBM on 10% target domain...")
-model.fit(X_target_train, y_target_train)
+model.fit(X_target_train, y_target_train, categorical_feature=cols_to_encode)
 
 print(" Predicting on the remaining 90% target test set...")
 # Predict ONLY on the 90% test portion to avoid data leakage

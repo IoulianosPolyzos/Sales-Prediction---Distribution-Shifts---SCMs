@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 
-# Path to specific Walmart CSV file
+# Path to specific Corporacion Favorita Parquet file
 PARQUET_PATH = r"../../../corporacion_favorita_dataset/final_data_favorita.parquet"
 
 print(" Loading Favorita Dataset from Parquet...")

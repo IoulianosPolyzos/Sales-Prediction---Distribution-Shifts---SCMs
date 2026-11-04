@@ -22,8 +22,10 @@ cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
-df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
-df_encoded = df_encoded.fillna(0)
+
+df_encoded = df_raw.copy()
+for col in cols_to_encode:
+    df_encoded[col] = df_encoded[col].astype('category')
 
 # Source Domain: Normal Days (In-Distribution)
 # Target Domain: Holidays (Out-of-Distribution)
@@ -60,7 +62,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-model.fit(X_source, y_source)
+model.fit(X_source, y_source, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target)
 
 

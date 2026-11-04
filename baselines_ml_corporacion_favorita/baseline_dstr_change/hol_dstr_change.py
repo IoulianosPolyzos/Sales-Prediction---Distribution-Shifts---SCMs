@@ -23,15 +23,14 @@ cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
-df_encoded = pd.get_dummies(df_raw, columns=cols_to_encode)
-df_encoded = df_encoded.fillna(0)
 
-# Source Domain: Normal Days (In-Distribution)
-# Target Domain: Holidays (Out-of-Distribution)
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
 TARGET = "unit_sales"
 
-source_df = df_encoded[df_encoded['IsHoliday'] == 0].copy().reset_index(drop=True)
-target_df = df_encoded[df_encoded['IsHoliday'] == 1].copy().reset_index(drop=True)
+source_df = df_raw[df_raw['IsHoliday'] == 0].copy().reset_index(drop=True)
+target_df = df_raw[df_raw['IsHoliday'] == 1].copy().reset_index(drop=True)
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
 # Features / target
@@ -130,12 +129,6 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
-
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-model.fit(X_train_combined, y_train_combined)
 y_pred = model.predict(X_test_combined)
 
 

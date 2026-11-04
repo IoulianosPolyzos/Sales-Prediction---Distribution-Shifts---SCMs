@@ -13,19 +13,16 @@ print(" Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 df_raw = df_raw.drop(columns=[ "Date","Season","DayOfWeek","Month","WeekOfYear"], errors='ignore')
 df_raw.columns = df_raw.columns.str.strip()
-df_raw['store_nbr'] = df_raw['store_nbr'].astype(int)
-
-
-
-source_df = df_raw[df_raw['store_nbr'].between(1, 41)].copy()
-target_df = df_raw[df_raw['store_nbr'].between(41, 55)].copy()
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
+source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 41)].copy()
+target_df = df_raw[df_raw['store_nbr'].astype(int).between(41, 55)].copy()
 TARGET = "unit_sales"
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
@@ -122,13 +119,8 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
-
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-model.fit(X_train_combined, y_train_combined)
+print(" Training LightGBM on Dtrain...")
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_test_combined)
 from sklearn.metrics import mean_squared_error, r2_score
 

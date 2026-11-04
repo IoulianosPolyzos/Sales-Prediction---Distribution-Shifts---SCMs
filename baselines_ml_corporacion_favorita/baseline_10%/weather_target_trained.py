@@ -17,16 +17,16 @@ df_raw.columns = df_raw.columns.str.strip()
 
 target_weather = ['Clear']
 
-print(" Applying Manual One-Hot Encoding...")
-
-target_df = df_raw[df_raw['weather_condition'].isin(target_weather)].copy()
+print(" Converting categorical columns to 'category' dtype...")
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
 
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
 
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
+target_df = df_raw[df_raw['weather_condition'].isin(target_weather)].copy()
 
 
 TARGET = "unit_sales"
@@ -66,7 +66,7 @@ lgb_params = {
 model = LGBMRegressor(**lgb_params)
 
 print(" Training LightGBM on 10% target domain...")
-model.fit(X_target_train, y_target_train)
+model.fit(X_target_train, y_target_train, categorical_feature=cols_to_encode)
 
 print(" Predicting on the remaining 90% target test set...")
 # Predict ONLY on the 90% test portion to avoid data leakage

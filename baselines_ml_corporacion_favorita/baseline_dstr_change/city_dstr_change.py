@@ -23,18 +23,17 @@ source_cities = ["Quito", "Guayaquil", "Cuenca", "Santo Domingo", "Machala", "Lo
 target_cities = [c for c in df_raw['city'].unique() if c not in source_cities]
 
 
-source_df = df_raw[df_raw['city'].isin(source_cities)].copy()
-target_df = df_raw[df_raw['city'].isin(target_cities)].copy()
-
-# 2. ONE-HOT encoding
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
 
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+print(" Converting categorical columns to 'category' dtype...")
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
+source_df = df_raw[df_raw['city'].isin(source_cities)].copy()
+target_df = df_raw[df_raw['city'].isin(target_cities)].copy()
 TARGET = "unit_sales"
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
@@ -130,17 +129,7 @@ lgb_params = {
     'n_jobs': 1
 }
 model = LGBMRegressor(**lgb_params)
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
-
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
-X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
-
-X_train_combined = X_train_combined.fillna(0).astype(np.float32)
-X_test_combined = X_test_combined.fillna(0).astype(np.float32)
-model.fit(X_train_combined, y_train_combined)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 
 
 # Predict ONLY on the 90% test portion to avoid data leakage

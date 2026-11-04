@@ -17,15 +17,16 @@ df_raw['store_nbr'] = df_raw['store_nbr'].astype(int)
 
 
 
-source_df = df_raw[df_raw['store_nbr'].between(1, 41)].copy()
-target_df = df_raw[df_raw['store_nbr'].between(41, 55)].copy()
 cols_to_encode = [
         "city", "state", "store_type", "family", "weather_condition",
         "store_nbr", "cluster", "class"
     ]
-source_df = pd.get_dummies(source_df, columns=cols_to_encode)
-target_df = pd.get_dummies(target_df, columns=cols_to_encode)
-source_df, target_df = source_df.align(target_df, join='left', axis=1, fill_value=0)
+
+for col in cols_to_encode:
+    df_raw[col] = df_raw[col].astype('category')
+
+source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 41)].copy()
+target_df = df_raw[df_raw['store_nbr'].astype(int).between(41, 55)].copy()
 
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 
@@ -56,7 +57,7 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
-model.fit(X_source, y_source)
+model.fit(X_source, y_source, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target)
 
 

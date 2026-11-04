@@ -436,7 +436,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
+print(" Training LightGBM on Dtrain...")
 model.fit(X_train_combined , y_train_combined)
 y_pred = model.predict(X_test_combined)
 from sklearn.metrics import mean_squared_error, r2_score
@@ -575,7 +575,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
+print(" Training LightGBM on Dtrain...")
 X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
 X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
 
@@ -728,7 +728,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
+print(" Training LightGBM on Dtrain...")
 X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
 X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
 
@@ -878,7 +878,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
-print(" Training LightGBM on source domain...")
+print(" Training LightGBM on Dtrain...")
 X_train_combined = X_train_combined.apply(pd.to_numeric, errors='coerce')
 X_test_combined = X_test_combined.apply(pd.to_numeric, errors='coerce')
 
