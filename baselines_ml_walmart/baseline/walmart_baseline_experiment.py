@@ -7,7 +7,7 @@ import numpy as np
 from scm_walmart.custom_mape import custom_retail_mape
 
 
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
@@ -73,7 +73,7 @@ from scm_walmart.custom_mape import custom_retail_mape
 
 
 
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 
 print(" Loading Walmart Dataset from CSV...")
@@ -141,7 +141,7 @@ import numpy as np
 from scm_walmart.custom_mape import custom_retail_mape
 
 
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
@@ -216,7 +216,7 @@ from scm_walmart.custom_mape import custom_retail_mape
 
 
 
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
@@ -285,7 +285,7 @@ import numpy as np
 from scm_walmart.custom_mape import custom_retail_mape
 
 
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 print(" Loading Walmart Dataset from CSV...")
 df_raw = pd.read_csv(CSV_PATH)
@@ -354,7 +354,7 @@ from scm_walmart.custom_mape import custom_retail_mape
 
 
 # Path to your specific Walmart CSV file
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 
 
@@ -423,7 +423,7 @@ from scm_walmart.custom_mape import custom_retail_mape
 
 
 # Path to your specific Walmart CSV file
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 
 

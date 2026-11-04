@@ -9,7 +9,7 @@ import numpy as np
 
 
 # Path to your specific Walmart CSV file
-CSV_PATH = r"../walmart_dataset/final_data_walmart.csv"
+CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
 
 
 
