@@ -12,14 +12,6 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-
-current_file = Path(__file__).resolve()
-
-project_root = current_file.parents[2]
-
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 os.environ["PYTHONWARNINGS"] = "ignore"
 warnings.filterwarnings("ignore")
 warnings.filterwarnings("ignore", category=UserWarning)

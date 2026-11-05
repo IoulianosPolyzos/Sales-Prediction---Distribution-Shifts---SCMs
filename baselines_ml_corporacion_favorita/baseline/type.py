@@ -33,6 +33,9 @@ for col in cols_to_encode:
 source_df = df_raw[df_raw['store_type'].isin(['C','B','D','E'])].copy()
 target_df = df_raw[df_raw['store_type'].isin(['A'])].copy()
 
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+
+
 adaptation_df, holdout_test_df = train_test_split(
     target_df,
     test_size=0.20,
