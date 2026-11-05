@@ -32,7 +32,7 @@ with open(config_path, "r") as f:
 
 lgb_params = config["lgb_params"]
 
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = project_root / "corporacion_favorita_dataset" / "final_data_favorita.parquet"
 print(f">>> Loading Favorita Dataset from Parquet...")
 df = pd.read_parquet(PARQUET_PATH)
 

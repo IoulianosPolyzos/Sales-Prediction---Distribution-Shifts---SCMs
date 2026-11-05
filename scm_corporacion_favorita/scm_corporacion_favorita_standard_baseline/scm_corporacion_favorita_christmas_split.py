@@ -61,7 +61,7 @@ Path(CONFIG['checkpoint_dir']).mkdir(exist_ok=True, parents=True)
 print("PART 1: LOADING DATA & SETUP")
 
 try:
-    PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+    PARQUET_PATH = project_root / "corporacion_favorita_dataset" / "final_data_favorita.parquet"
     df = pd.read_parquet(PARQUET_PATH)
 
     # Drop redundant columns
