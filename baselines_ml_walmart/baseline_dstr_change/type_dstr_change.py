@@ -9,7 +9,16 @@ from scm_walmart.custom_mape import custom_retail_mape
 
 
 
-CSV_PATH = r"../../../walmart_dataset/final_data_walmart.csv"
+import sys
+from pathlib import Path
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+CSV_PATH = project_root / "walmart_dataset" / "final_data_walmart.csv"
 
 
 print(" Loading Walmart Dataset from CSV...")
