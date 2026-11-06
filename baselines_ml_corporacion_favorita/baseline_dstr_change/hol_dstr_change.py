@@ -138,6 +138,7 @@ lgb_params = {
 }
 
 model = LGBMRegressor(**lgb_params)
+model.fit(X_train_combined, y_train_combined, categorical_feature=cols_to_encode)
 y_pred = model.predict(X_test_combined)
 
 

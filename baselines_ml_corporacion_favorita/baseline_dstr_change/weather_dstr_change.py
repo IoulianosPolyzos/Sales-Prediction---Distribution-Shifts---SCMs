@@ -40,6 +40,9 @@ for col in cols_to_encode:
 source_df = df_raw[df_raw['weather_condition'].isin(source_weather)].copy()
 target_df = df_raw[df_raw['weather_condition'].isin(target_weather)].copy()
 
+source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
+target_df = target_df.sample(n=min(1000000, len(target_df)), random_state=42).reset_index(drop=True)
+
 TARGET = "unit_sales"
 
 # Features / target
