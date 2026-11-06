@@ -243,7 +243,7 @@ if high_shift_regions and len(high_shift_regions[0][0]) > 0:
 
     # Use the ordinal dataframe to evaluate the query and get the indices
     targeted_indices = X_adapt_ord.query(query_str).index
-    targeted_adaptation_df = target_domain_train.iloc[targeted_indices].copy().reset_index(drop=True)
+    targeted_adaptation_df = target_domain_train.loc[targeted_indices].copy().reset_index(drop=True)
 else:
     print("\nNo specific high-shift rule found. Using full target_domain_train.")
     targeted_adaptation_df = target_domain_train.copy()
