@@ -99,10 +99,16 @@ source_domain_train, source_domain_test = train_test_split(
     source_df, test_size=0.1, random_state=CONFIG['random_seed']
 )
 
+source_domain_train = source_domain_train.reset_index(drop=True)
+source_domain_test = source_domain_test.reset_index(drop=True)
+
 # Target: 10% goes to train, 90% goes to test
 target_domain_train, target_domain_test = train_test_split(
     target_df, test_size=0.9, random_state=CONFIG['random_seed']
 )
+
+target_domain_train = target_domain_train.reset_index(drop=True)
+target_domain_test = target_domain_test.reset_index(drop=True)
 
 # 3. Create Pooled (Mixed) Train and Test sets
 train_df = pd.concat([source_domain_train, target_domain_train], axis=0).sample(frac=1, random_state=CONFIG[
@@ -240,7 +246,7 @@ if high_shift_regions and len(high_shift_regions[0][0]) > 0:
 
     # Use the ordinal dataframe to evaluate the query and get the indices
     targeted_indices = X_adapt_ord.query(query_str).index
-    targeted_adaptation_df = target_domain_train.loc[targeted_indices].copy().reset_index(drop=True)
+    targeted_adaptation_df = target_domain_train.iloc[targeted_indices].copy().reset_index(drop=True)
 else:
     print("\nNo specific high-shift rule found. Using full target_domain_train.")
     targeted_adaptation_df = target_domain_train.copy()
