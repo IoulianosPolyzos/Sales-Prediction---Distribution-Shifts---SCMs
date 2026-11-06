@@ -12,7 +12,7 @@ from sklearn.tree import plot_tree, DecisionTreeRegressor
 from lightgbm import LGBMRegressor, LGBMClassifier
 from whyshift.region_analysis import shared_reweight
 from whyshift_reg.disde_reg import degradation_decomp_regression
-
+from sklearn.tree import _tree
 
 def save_checkpoint(scm, feature_graph, parents, metrics, checkpoint_dir, stage_name="checkpoint"):
     try:

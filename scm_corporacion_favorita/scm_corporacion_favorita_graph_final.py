@@ -26,6 +26,11 @@ sys.path.append(str(current_dir.parent))
 from scm_favorita_graph_utils import get_favorita_definitions, build_feature_graph
 
 
+
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
 config_path = project_root / "scm_corporacion_favorita" / "config.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)

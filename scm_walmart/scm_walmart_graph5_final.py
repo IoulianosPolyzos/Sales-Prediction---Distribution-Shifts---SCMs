@@ -32,6 +32,12 @@ from matplotlib import pyplot as plt
 # Wrappers to integrate sklearn models into DoWhy's causal mechanisms.
 from dowhy.gcm.ml import SklearnRegressionModel, SklearnClassificationModel
 
+import sys
+from pathlib import Path
+
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
 
 # Load the dataset from disk.
 # The dataset represents a preprocessed version of the Walmart sales data.
