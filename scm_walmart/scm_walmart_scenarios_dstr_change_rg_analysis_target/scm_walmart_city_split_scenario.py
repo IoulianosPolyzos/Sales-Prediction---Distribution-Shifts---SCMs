@@ -102,13 +102,24 @@ source_df = df[df['city'].isin(source_cities)].copy().reset_index(drop=True)
 target_df = df[df['city'].isin(target_cities)].copy().reset_index(drop=True)
 
 source_domain_train, source_domain_test = train_test_split(
-    source_df, test_size=0.1, random_state=42
+    source_df, test_size=0.1, random_state=CONFIG['random_seed']
 )
-target_domain_train , target_domain_test = train_test_split(target_df,test_size=0.9,random_state=42)
 
-train_df = pd.concat([source_domain_train, target_domain_train], axis=0).sample(frac=1, random_state=42)
-test_df = pd.concat([source_domain_test, target_domain_test], axis=0).sample(frac=1, random_state=42)
+source_domain_train = source_domain_train.reset_index(drop=True)
+source_domain_test = source_domain_test.reset_index(drop=True)
 
+# Target: 10% goes to train, 90% goes to test
+target_domain_train, target_domain_test = train_test_split(
+    target_df, test_size=0.9, random_state=CONFIG['random_seed']
+)
+
+target_domain_train = target_domain_train.reset_index(drop=True)
+target_domain_test = target_domain_test.reset_index(drop=True)
+
+train_df = pd.concat([source_domain_train, target_domain_train], axis=0).sample(frac=1, random_state=CONFIG[
+    'random_seed']).reset_index(drop=True)
+test_df = pd.concat([source_domain_test, target_domain_test], axis=0).sample(frac=1, random_state=CONFIG[
+    'random_seed']).reset_index(drop=True)
 
 print(f"Source Cities: {source_cities}")
 print(f"Train shape: {train_df.shape}")
@@ -191,7 +202,7 @@ print("\nPART 7.5: TARGETED REGION ANALYSIS & RULE EXTRACTION")
 X_src_ord = source_domain_train.drop(columns=['Weekly_Sales']).copy()
 X_adapt_ord = target_domain_train.drop(columns=['Weekly_Sales']).copy()
 
-cat_cols_present = [c for c in categorical_nodes if c in X_src_ord.columns]
+cat_cols_present = [c for c in classifier_nodes if c in X_src_ord.columns]
 
 if cat_cols_present:
     oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)

@@ -210,7 +210,7 @@ print("\nPART 7.5: TARGETED REGION ANALYSIS & RULE EXTRACTION")
 X_src_ord = source_domain_train.drop(columns=['unit_sales']).copy()
 X_adapt_ord = target_domain_train.drop(columns=['unit_sales']).copy()
 
-cat_cols_present = [c for c in categorical_nodes if c in X_src_ord.columns]
+cat_cols_present = [c for c in classifier_nodes if c in X_src_ord.columns]
 
 if cat_cols_present:
     oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)

@@ -233,7 +233,7 @@ print("\nPART 7.5: TARGETED ADAPTATION REGION ANALYSIS & RULE EXTRACTION")
 X_src_ord = source_df.drop(columns=['Weekly_Sales']).copy()
 X_adapt_ord = adaptation_df.drop(columns=['Weekly_Sales']).copy()
 
-cat_cols_present = [c for c in categorical_nodes if c in X_src_ord.columns]
+cat_cols_present = [c for c in classifier_nodes if c in X_src_ord.columns]
 
 if cat_cols_present:
     oe = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
