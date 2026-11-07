@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+current_file = Path(__file__).resolve()
+
+project_root = current_file.parents[2]
+
+
+
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from lightgbm import LGBMRegressor

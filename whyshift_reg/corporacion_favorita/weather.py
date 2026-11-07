@@ -28,8 +28,8 @@ print(">>> Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
 
 # Define domains based on weather condition
-source_weather = ['Clouds', 'Rain', 'Snow']
-target_weather = ['Clear']
+source_weather = ['clouds', 'rain', 'snow']
+target_weather = ['clear']
 
 print(f">>> Assigning domains (Target: Clear, Source: Clouds/Rain/Snow)...")
 df_raw['domain'] = np.where(df_raw['weather_condition'].isin(target_weather), 'Target',
