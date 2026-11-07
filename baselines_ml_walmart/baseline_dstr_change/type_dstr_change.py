@@ -5,6 +5,10 @@ current_file = Path(__file__).resolve()
 project_root = current_file.parents[2]
 
 
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from lightgbm import LGBMRegressor
@@ -12,10 +16,6 @@ import pandas as pd
 import numpy as np
 from scm_walmart.custom_mape import custom_retail_mape
 
-
-
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 CSV_PATH = project_root / "walmart_dataset" / "final_data_walmart.csv"
 
