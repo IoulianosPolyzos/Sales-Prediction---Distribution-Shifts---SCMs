@@ -21,7 +21,7 @@ with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 
 lgb_params = config["lgb_params"]
-PARQUET_PATH = r"../../corporacion_favorita_dataset/final_data_favorita.parquet"
+PARQUET_PATH = project_root / "corporacion_favorita_dataset" / "final_data_favorita.parquet"
 
 print(">>> Loading Favorita Dataset from Parquet...")
 df_raw = pd.read_parquet(PARQUET_PATH)
