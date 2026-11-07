@@ -318,7 +318,7 @@ synthetic_dataset = generate_synthetic_data(
     clip_cols=clip_cols
 )
 print("Synthetic Season distribution:")
-print(synthetic_dataset['Season'].value_counts())
+
 
 
 print("\nTrain ML model on Synthetic Dataset...")
