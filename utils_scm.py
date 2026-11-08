@@ -11,6 +11,8 @@ from matplotlib import pyplot as plt
 from sklearn.tree import plot_tree, DecisionTreeRegressor
 from lightgbm import LGBMRegressor, LGBMClassifier
 from whyshift.region_analysis import shared_reweight
+
+from scm_walmart.wrappers import LGBMClassifierWrapper, LGBMRegressorWrapper
 from whyshift_reg.disde_reg import degradation_decomp_regression
 from sklearn.tree import _tree
 
@@ -71,20 +73,36 @@ def get_all_descendants(graph, source_node):
     return descendants
 
 
-def setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params):
+# def setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params):
+#     for node in feature_graph.nodes:
+#         parents = list(feature_graph.predecessors(node))
+#         if len(parents) == 0:
+#             scm.set_causal_mechanism(node, gcm.EmpiricalDistribution())
+#         elif node in classifier_nodes:
+#             scm.set_causal_mechanism(
+#                 node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(LGBMClassifier(**lgb_params)))
+#             )
+#         else:
+#             scm.set_causal_mechanism(
+#                 node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(LGBMRegressor(**lgb_params)))
+#             )
+
+def setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params):
     for node in feature_graph.nodes:
         parents = list(feature_graph.predecessors(node))
+
         if len(parents) == 0:
             scm.set_causal_mechanism(node, gcm.EmpiricalDistribution())
         elif node in classifier_nodes:
+            wrapper = LGBMClassifierWrapper(parents, categorical_nodes, lgb_params)
             scm.set_causal_mechanism(
-                node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(LGBMClassifier(**lgb_params)))
+                node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(wrapper))
             )
         else:
+            wrapper = LGBMRegressorWrapper(parents, categorical_nodes, lgb_params)
             scm.set_causal_mechanism(
-                node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(LGBMRegressor(**lgb_params)))
+                node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(wrapper))
             )
-
 
 def print_target_stats(df, target_col, title):
     """Prints summary statistics of the target column for any dataset."""
