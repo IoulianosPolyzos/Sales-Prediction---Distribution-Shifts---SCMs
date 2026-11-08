@@ -193,7 +193,7 @@ scm = gcm.StructuralCausalModel(feature_graph)
 
 # Fit SCM using the mixed observational training data
 try:
-    setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
     print("✓ Mechanisms setup complete")
 
     print(f"Fitting SCM on Dtrain (90% Source Seasons + 10% Target Seasons)...")

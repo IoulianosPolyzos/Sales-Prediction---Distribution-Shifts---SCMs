@@ -78,7 +78,7 @@ print(f"Edges: {feature_graph.number_of_edges()}")
 # --- SCM SPECIFICATION & FITTING ---
 scm = gcm.StructuralCausalModel(feature_graph)
 
-setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
 
 print("\nFitting SCM on training data...")
 gcm.fit(scm, train_df)

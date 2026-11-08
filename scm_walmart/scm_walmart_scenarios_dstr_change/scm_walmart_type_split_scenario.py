@@ -165,7 +165,7 @@ scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
     # Set up the internal causal mechanisms (LGBM) using the external utility
-    setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
     print("Fitting SCM on Dtrain (90% Source Types + 10% Target Types)...")
 
     # The SCM is trained directly on the mixed dataset, automatically

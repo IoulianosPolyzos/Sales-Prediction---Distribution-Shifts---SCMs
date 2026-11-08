@@ -199,7 +199,7 @@ print("\nPART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
-    setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
     print(f"Fitting SCM on training data (Store Types {CONFIG['source_store_types']})...")
     gcm.fit(scm, source_df)
 

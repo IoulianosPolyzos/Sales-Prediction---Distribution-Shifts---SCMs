@@ -173,7 +173,7 @@ scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
     # Set up the internal causal mechanisms (LGBM) using the external utility
-    setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
     print("✓ Mechanisms setup complete")
 
     print("Fitting SCM on Dtrain (90% Source Weather + 10% Target Weather)...")

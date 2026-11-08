@@ -160,7 +160,7 @@ print("PART 6: FITTING MIXED STRUCTURAL CAUSAL MODEL (ON POOLED TRAIN DATA)")
 scm = gcm.StructuralCausalModel(feature_graph)
 
 try:
-    setup_mechanisms(scm, feature_graph, classifier_nodes, lgb_params)
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
     print("Fitting SCM on Dtrain (90% Normal + 10% Christmas)...")
 
     gcm.fit(scm, train_df)
