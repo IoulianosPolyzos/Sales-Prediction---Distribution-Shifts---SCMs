@@ -92,3 +92,7 @@ class LGBMClassifierWrapper(BaseEstimator, ClassifierMixin):
             else:
                 X_enc[:, i] = X[:, i].astype(float)
         return self.model.predict_proba(X_enc)
+
+    @property
+    def classes_(self):
+        return self.model.classes_
