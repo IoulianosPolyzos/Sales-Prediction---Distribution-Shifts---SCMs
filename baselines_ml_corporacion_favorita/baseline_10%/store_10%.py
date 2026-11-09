@@ -32,7 +32,7 @@ cols_to_encode = [
 for col in cols_to_encode:
     df_raw[col] = df_raw[col].astype('category')
 
-source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 41)].copy()
+source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 40)].copy()
 target_df = df_raw[df_raw['store_nbr'].astype(int).between(41, 55)].copy()
 
 source_df = source_df.sample(n=min(500000, len(source_df)), random_state=42).reset_index(drop=True)

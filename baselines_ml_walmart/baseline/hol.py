@@ -40,17 +40,20 @@ for col in cols_to_encode:
 source_df = df_raw[df_raw['IsHoliday'] == 0].copy()
 target_df = df_raw[df_raw['IsHoliday'] == 1].copy()
 
+adaptation_df, holdout_test_df = train_test_split(
+    target_df,
+    test_size=0.20,
+    random_state=42
+)
+
 TARGET = "Weekly_Sales"
 
 X_source = source_df.drop(columns=[TARGET])
 y_source = source_df[TARGET]
 
-X_target = target_df.drop(columns=[TARGET])
-y_target = target_df[TARGET]
+X_target = holdout_test_df.drop(columns=[TARGET])
+y_target = holdout_test_df[TARGET]
 
-X_target_dummy, X_target_test, y_target_dummy, y_target_test = train_test_split(
-    X_target, y_target, test_size=0.20, random_state=42
-)
 
 
 from lightgbm import LGBMRegressor
@@ -66,11 +69,11 @@ lgb_params = {
 
 model = LGBMRegressor(**lgb_params)
 model.fit(X_source, y_source, categorical_feature=cols_to_encode)
-y_pred = model.predict(X_target_test)
-mae = mean_absolute_error(y_target_test, y_pred)
-rmse = np.sqrt(mean_squared_error(y_target_test, y_pred))
-mape = custom_retail_mape(y_target_test, y_pred)
-r2 = r2_score(y_target_test, y_pred)
+y_pred = model.predict(X_target)
+mae = mean_absolute_error(y_target, y_pred)
+rmse = np.sqrt(mean_squared_error(y_target, y_pred))
+mape = custom_retail_mape(y_target, y_pred)
+r2 = r2_score(y_target, y_pred)
 print(f"MAE : {mae:.2f}")
 print(f"RMSE: {rmse:.2f}")
 print(f"MAPE: {mape:.2f}")

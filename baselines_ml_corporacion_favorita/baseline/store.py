@@ -34,8 +34,8 @@ cols_to_encode = [
 for col in cols_to_encode:
     df_raw[col] = df_raw[col].astype('category')
 
-source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 41)].copy()
-target_df = df_raw[df_raw['store_nbr'].astype(int).between(41, 55)].copy()
+source_df = df_raw[df_raw['store_nbr'].astype(int).between(1, 40)].copy()
+target_df = df_raw[df_raw['store_nbr'].astype(int).between(41, 54)].copy()
 
 source_df = source_df.sample(n=min(1000000, len(source_df)), random_state=42).reset_index(drop=True)
 
@@ -53,9 +53,7 @@ y_source = source_df[TARGET]
 X_target = holdout_test_df.drop(columns=[TARGET])
 y_target = holdout_test_df[TARGET]
 
-X_target_dummy, X_target_test, y_target_dummy, y_target_test = train_test_split(
-    X_target, y_target, test_size=0.20, random_state=42
-)
+
 
 from lightgbm import LGBMRegressor
 
@@ -71,11 +69,11 @@ lgb_params = {
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
 model.fit(X_source, y_source, categorical_feature=cols_to_encode)
-y_pred = model.predict(X_target_test)
-mae = mean_absolute_error(y_target_test, y_pred)
-rmse = np.sqrt(mean_squared_error(y_target_test, y_pred))
-mape = mean_absolute_percentage_error(y_target_test, y_pred)
-r2 = r2_score(y_target_test, y_pred)
+y_pred = model.predict(X_target)
+mae = mean_absolute_error(y_target, y_pred)
+rmse = np.sqrt(mean_squared_error(y_target, y_pred))
+mape = mean_absolute_percentage_error(y_target, y_pred)
+r2 = r2_score(y_target, y_pred)
 print(f"MAE : {mae:.2f}")
 print(f"RMSE: {rmse:.2f}")
 print(f"MAPE: {mape:.2f}")
