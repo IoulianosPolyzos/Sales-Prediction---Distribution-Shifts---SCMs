@@ -70,8 +70,8 @@ lgb_params = {
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
 model.fit(X_source, y_source, categorical_feature=cols_to_encode)
-y_pred = model.predict(X_target_test)
 
+y_pred = model.predict(X_target_test)
 mae = mean_absolute_error(y_target_test, y_pred)
 rmse = np.sqrt(mean_squared_error(y_target_test, y_pred))
 mape = custom_retail_mape(y_target_test, y_pred)
