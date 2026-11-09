@@ -48,14 +48,11 @@ from utils_scm import (
 
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
 
-# --- CONFIGURATION ---
-try:
-    with open("../config.yaml", "r") as f:
-        config = yaml.safe_load(f)
-    lgb_params = config["lgb_params"]
-except FileNotFoundError:
-    print("Config not found, using default LGBM parameters.")
-    lgb_params = {'n_estimators': 100, 'random_state': 42}
+config_path = project_root / "scm_walmart" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
 
 
 CONFIG = {
