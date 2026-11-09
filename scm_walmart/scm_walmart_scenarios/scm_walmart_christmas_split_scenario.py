@@ -230,62 +230,44 @@ print("\nExecuting Aligned Intervention: Changing days to Christmas (Is_Christma
 
 num_synthetic_samples = len(target_df)
 
-cols_to_simulate = [
-    'Weekly_Sales',
-    'MarkDown1', 'MarkDown2', 'MarkDown3', 'MarkDown4', 'MarkDown5'
-]
-
-interventions_dict = {}
-
-def create_intervention_func(col_data):
-    iterator = itertools.cycle(col_data)
-    return lambda x: next(iterator)
-
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
-# aligned_month_sin = sampled_target['Month_sin'].values
-# aligned_month_cos = sampled_target['Month_cos'].values
-# aligned_week_sin = sampled_target['WeekOfYear_sin'].values
-# aligned_week_cos = sampled_target['WeekOfYear_cos'].values
-# aligned_christmas = sampled_target['Is_Christmas_Season'].values
-# aligned_year_progress = sampled_target['Year_Progress'].values
-# aligned_month_progress = sampled_target['Month_Progress'].values
-#
-#
-# iter_month_sin = itertools.cycle(aligned_month_sin)
-# iter_month_cos = itertools.cycle(aligned_month_cos)
-# iter_week_sin = itertools.cycle(aligned_week_sin)
-# iter_week_cos = itertools.cycle(aligned_week_cos)
-# iter_christmas = itertools.cycle(aligned_christmas)
-# iter_year_progress = itertools.cycle(aligned_year_progress)
-# iter_month_progress = itertools.cycle(aligned_month_progress)
-#
-#
-# def int_month_sin(x): return next(iter_month_sin)
-# def int_month_cos(x): return next(iter_month_cos)
-# def int_week_sin(x): return next(iter_week_sin)
-# def int_week_cos(x): return next(iter_week_cos)
-# def int_christmas(x): return next(iter_christmas)
-# def int_year_progress(x): return next(iter_year_progress)
-# def int_month_progress(x): return next(iter_month_progress)
-#
-#
-# interventions_dict = {
-#     'Month_sin': int_month_sin,
-#     'Month_cos': int_month_cos,
-#     'WeekOfYear_sin': int_week_sin,
-#     'WeekOfYear_cos': int_week_cos,
-#     'Is_Christmas_Season': int_christmas,
-#     'Year_Progress': int_year_progress,
-#     'Month_Progress': int_month_progress
-# }
+aligned_month_sin = sampled_target['Month_sin'].values
+aligned_month_cos = sampled_target['Month_cos'].values
+aligned_week_sin = sampled_target['WeekOfYear_sin'].values
+aligned_week_cos = sampled_target['WeekOfYear_cos'].values
+aligned_christmas = sampled_target['Is_Christmas_Season'].values
+aligned_year_progress = sampled_target['Year_Progress'].values
+aligned_month_progress = sampled_target['Month_Progress'].values
 
-for col in feature_graph.nodes:
-    if col not in cols_to_simulate and col in sampled_target.columns:
-        real_values = sampled_target[col].values
-        interventions_dict[col] = create_intervention_func(real_values)
 
-print(f"Locked {len(interventions_dict)} background variables. SCM will only simulate: {cols_to_simulate}")
+iter_month_sin = itertools.cycle(aligned_month_sin)
+iter_month_cos = itertools.cycle(aligned_month_cos)
+iter_week_sin = itertools.cycle(aligned_week_sin)
+iter_week_cos = itertools.cycle(aligned_week_cos)
+iter_christmas = itertools.cycle(aligned_christmas)
+iter_year_progress = itertools.cycle(aligned_year_progress)
+iter_month_progress = itertools.cycle(aligned_month_progress)
+
+
+def int_month_sin(x): return next(iter_month_sin)
+def int_month_cos(x): return next(iter_month_cos)
+def int_week_sin(x): return next(iter_week_sin)
+def int_week_cos(x): return next(iter_week_cos)
+def int_christmas(x): return next(iter_christmas)
+def int_year_progress(x): return next(iter_year_progress)
+def int_month_progress(x): return next(iter_month_progress)
+
+
+interventions_dict = {
+    'Month_sin': int_month_sin,
+    'Month_cos': int_month_cos,
+    'WeekOfYear_sin': int_week_sin,
+    'WeekOfYear_cos': int_week_cos,
+    'Is_Christmas_Season': int_christmas,
+    'Year_Progress': int_year_progress,
+    'Month_Progress': int_month_progress
+}
 
 print("\nGenerating synthetic data with paired Temporal & Holiday Interventions...")
 clip_cols = [
@@ -304,7 +286,7 @@ synthetic_dataset = generate_synthetic_data(
     original_df=df,
     classifier_nodes=classifier_nodes,
     target_col='Weekly_Sales',
-    clip_cols=cols_to_simulate
+    clip_cols=clip_cols
 )
 
 print("\nTrain ML model on Synthetic Dataset...")
