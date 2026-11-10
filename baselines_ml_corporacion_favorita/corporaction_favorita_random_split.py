@@ -35,14 +35,12 @@ df_encoded = df_raw.copy()
 for col in cols_to_encode:
     df_encoded[col] = df_encoded[col].astype('category')
 
-# --- Τυχαίος διαχωρισμός 70/30 (Χωρίς Domain Shift λογική) ---
 train_df, test_df = train_test_split(
     df_encoded,
     test_size=0.30,
     random_state=42
 )
 
-# Sampling στο Train για αποφυγή Memory Errors
 train_df = train_df.sample(n=min(1000000, len(train_df)), random_state=42).reset_index(drop=True)
 test_df = test_df.reset_index(drop=True)
 
