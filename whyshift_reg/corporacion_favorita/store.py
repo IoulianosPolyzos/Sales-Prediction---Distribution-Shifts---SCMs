@@ -5,13 +5,15 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.tree import DecisionTreeRegressor, plot_tree
 import lightgbm as lgbm
 import sys
-import yaml
+
 from pathlib import Path
 current_file = Path(__file__).resolve()
 project_root = current_file.parents[2]
 
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+
+import yaml
 
 config_path = project_root / "scm_walmart" / "config.yaml"
 with open(config_path, "r") as f:
