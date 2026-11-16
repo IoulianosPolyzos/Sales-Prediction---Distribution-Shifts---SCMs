@@ -60,13 +60,9 @@ source_df = df_encoded[df_encoded['domain'] == 'Source'].copy()
 target_df = df_encoded[df_encoded['domain'] == 'Target'].copy()
 
 drop_cols = [
-    'unit_sales', 'date', 'id', 'store_type', 'domain','cluster'
-    'IsHoliday', 'holiday_proximity', 'is_near_holiday', 'holiday_weight', 'Is_Christmas_Season',
-    'Month', 'WeekOfYear', 'Quarter', 'Season', 'Year_Progress', 'Month_Progress',
-    'WeekOfYear_sin', 'WeekOfYear_cos', 'Month_sin', 'Month_cos', 'Season_sin', 'Season_cos',
-    'Is_Month_Start', 'Is_Month_End', 'DayOfWeek', 'DayOfWeek_sin', 'DayOfWeek_cos'
+    'unit_sales', 'date', 'id', 'domain',
+    'store_nbr', 'city', 'state', 'store_type', 'cluster','transactions','city', 'state',
 ]
-
 feature_names = [c for c in source_df.columns if c not in drop_cols]
 
 X_source_full = source_df[feature_names].values

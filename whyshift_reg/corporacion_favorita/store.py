@@ -59,7 +59,7 @@ target_df = df_encoded[df_encoded['domain'] == 'Target'].copy()
 
 drop_cols = [
     'unit_sales', 'date', 'id', 'domain',
-    'store_nbr', 'city', 'state', 'store_type', 'cluster'
+    'store_nbr', 'city', 'state', 'store_type', 'cluster','transactions','city', 'state',
 ]
 
 feature_names = [c for c in source_df.columns if c not in drop_cols]
