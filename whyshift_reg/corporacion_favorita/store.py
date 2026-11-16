@@ -13,13 +13,6 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-import yaml
-
-config_path = project_root / "scm_walmart" / "config.yaml"
-with open(config_path, "r") as f:
-    config = yaml.safe_load(f)
-
-lgb_params = config["lgb_params"]
 from whyshift_reg.disde_reg import degradation_decomp_regression
 
 PARQUET_PATH = project_root / "corporacion_favorita_dataset" / "final_data_favorita.parquet"

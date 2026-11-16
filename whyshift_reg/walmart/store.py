@@ -6,7 +6,6 @@ from whyshift.region_analysis import shared_reweight
 
 from whyshift_reg.disde_reg import *
 import sys
-import yaml
 from pathlib import Path
 current_file = Path(__file__).resolve()
 project_root = current_file.parents[2]
@@ -14,11 +13,7 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-config_path = project_root / "scm_walmart" / "config.yaml"
-with open(config_path, "r") as f:
-    config = yaml.safe_load(f)
 
-lgb_params = config["lgb_params"]
 
 CSV_PATH = r"../../walmart_dataset/final_data_walmart.csv"
 
