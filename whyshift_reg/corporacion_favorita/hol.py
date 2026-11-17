@@ -124,6 +124,13 @@ print(f"X Shift (P side): {x_shift_P:.4f}")
 print(f"X Shift (Q side): {x_shift_Q:.4f}")
 print(f"Total X Shift : {total_x_shift:.4f}")
 
+if total_degradation != 0:
+    print(f"X Shift P side ratio: {x_shift_P/total_degradation:.4f}")
+    print(f"X Shift Q side ratio: {x_shift_Q/total_degradation:.4f}")
+    print(f"X Shift Ratio : {total_x_shift/total_degradation:.4f}")
+    print(f"Y|X Shift Ratio: {yx_shift/total_degradation:.4f}")
+
+
 
 from whyshift.region_analysis import shared_reweight
 

@@ -118,17 +118,19 @@ total_x_shift = x_shift_P + x_shift_Q
 
 print(f"Source MAE (p2p): {p2p:.4f}")
 print(f"Target MAE (q2q): {q2q:.4f}")
-print(f"p2s: expected Source Error on Sx (Reweighted Source Error)  : {p2s:.4f}")
-print(f"s2q: expected Target Error on Sx (Reweighted Target Error)  : {s2q:.4f}")
+print(f"p2s: expected Source Error on Sx (Reweighted Source Error): {p2s:.4f}")
+print(f"s2q: expected Target Error on Sx (Reweighted Target Error): {s2q:.4f}")
 print(f"Total Degradation: {total_degradation:.4f}")
 print(f"Y|X Shift: {yx_shift:.4f}")
 print(f"X Shift (P side): {x_shift_P:.4f}")
 print(f"X Shift (Q side): {x_shift_Q:.4f}")
 print(f"Total X Shift : {total_x_shift:.4f}")
-print(f"X Shift P side ratio: {x_shift_P/total_degradation:.4f}")
-print(f"X Shift Q side ratio: {x_shift_Q/total_degradation:.4f}")
-print(f"X Shift Ratio : {total_x_shift/total_degradation:.4f}")
-print(f"Y|X Shift Ratio: {yx_shift/total_degradation:.4f}")
+
+if total_degradation != 0:
+    print(f"X Shift P side ratio: {x_shift_P/total_degradation:.4f}")
+    print(f"X Shift Q side ratio: {x_shift_Q/total_degradation:.4f}")
+    print(f"X Shift Ratio : {total_x_shift/total_degradation:.4f}")
+    print(f"Y|X Shift Ratio: {yx_shift/total_degradation:.4f}")
 
 
 from whyshift.region_analysis import shared_reweight
