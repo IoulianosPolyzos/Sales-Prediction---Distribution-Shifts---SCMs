@@ -163,3 +163,25 @@ try:
 except Exception as e:
     print(f"ERROR: Baseline evaluation failed: {e}")
     raise
+
+# %%
+print("PART 8: CAUSAL GRAPH EVALUATION (FALSIFICATION)")
+
+try:
+    # Evaluate the structural and mechanism assumptions of the SCM
+    print("Running causal model evaluation (this may take some time)...")
+    evaluation_metrics = gcm.evaluate_causal_model(
+        scm,
+        test_df,
+        evaluate_causal_mechanisms=True,
+        evaluate_causal_structure=True,
+        max_num_samples=-1
+    )
+
+    # Plot evaluation results and save to file
+    gcm.falsify.plot_evaluation_results(evaluation_metrics.graph_falsification)
+    plt.savefig("graph_falsification_favorita.png", dpi=150, bbox_inches='tight')
+    print("Graph falsification plot saved successfully to 'graph_falsification_favorita.png'")
+
+except Exception as e:
+    print(f"ERROR: Causal evaluation/plotting failed: {e}")

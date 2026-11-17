@@ -60,7 +60,7 @@ lgb_params = {
 }
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
-model.fit(X_source, y_source)
+model.fit(X_source, y_source,categorical_feature=cols_to_encode)
 y_pred = model.predict(X_target)
 from sklearn.metrics import mean_squared_error, r2_score
 
