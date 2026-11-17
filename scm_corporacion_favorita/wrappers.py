@@ -5,22 +5,27 @@ from lightgbm import LGBMRegressor, LGBMClassifier
 
 
 class LGBMRegressorWrapper(BaseEstimator, RegressorMixin):
-    def __init__(self, parents, cat_features_list, lgb_params):
-        self.parents = sorted(parents)
+    def __init__(self, parents=None, cat_features_list=None, lgb_params=None):
+        self.parents = parents
         self.cat_features_list = cat_features_list
         self.lgb_params = lgb_params
-        self.model = LGBMRegressor(**(lgb_params or {}))
-        self.encoders = {}
 
     def fit(self, X, y):
+        # Create model here to avoid pickling/cloning issues with sub-objects
+        self.model = LGBMRegressor(**(self.lgb_params or {}))
+        self.encoders = {}
+
+        # Sort parents during fit, not __init__
+        actual_parents = sorted(self.parents) if self.parents else []
+        cat_features = self.cat_features_list if self.cat_features_list else []
+
         X_enc = np.zeros(X.shape, dtype=float)
         cat_indices = []
 
-        for i, p in enumerate(self.parents):
-            if p in self.cat_features_list:
+        for i, p in enumerate(actual_parents):
+            if p in cat_features:
                 cat_indices.append(i)
                 enc = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
-                # Κάνουμε fit_transform και το αποθηκεύουμε για το predict
                 col_data = X[:, i].astype(str).reshape(-1, 1)
                 X_enc[:, i] = enc.fit_transform(col_data).flatten()
                 self.encoders[i] = enc
@@ -34,9 +39,12 @@ class LGBMRegressorWrapper(BaseEstimator, RegressorMixin):
         return self
 
     def predict(self, X):
+        actual_parents = sorted(self.parents) if self.parents else []
+        cat_features = self.cat_features_list if self.cat_features_list else []
+
         X_enc = np.zeros(X.shape, dtype=float)
-        for i, p in enumerate(self.parents):
-            if p in self.cat_features_list:
+        for i, p in enumerate(actual_parents):
+            if p in cat_features:
                 col_data = X[:, i].astype(str).reshape(-1, 1)
                 X_enc[:, i] = self.encoders[i].transform(col_data).flatten()
             else:
@@ -46,19 +54,23 @@ class LGBMRegressorWrapper(BaseEstimator, RegressorMixin):
 
 
 class LGBMClassifierWrapper(BaseEstimator, ClassifierMixin):
-    def __init__(self, parents, cat_features_list, lgb_params):
-        self.parents = sorted(parents)
+    def __init__(self, parents=None, cat_features_list=None, lgb_params=None):
+        self.parents = parents
         self.cat_features_list = cat_features_list
         self.lgb_params = lgb_params
-        self.model = LGBMClassifier(**(lgb_params or {}))
-        self.encoders = {}
 
     def fit(self, X, y):
+        self.model = LGBMClassifier(**(self.lgb_params or {}))
+        self.encoders = {}
+
+        actual_parents = sorted(self.parents) if self.parents else []
+        cat_features = self.cat_features_list if self.cat_features_list else []
+
         X_enc = np.zeros(X.shape, dtype=float)
         cat_indices = []
 
-        for i, p in enumerate(self.parents):
-            if p in self.cat_features_list:
+        for i, p in enumerate(actual_parents):
+            if p in cat_features:
                 cat_indices.append(i)
                 enc = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)
                 col_data = X[:, i].astype(str).reshape(-1, 1)
@@ -74,9 +86,12 @@ class LGBMClassifierWrapper(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X):
+        actual_parents = sorted(self.parents) if self.parents else []
+        cat_features = self.cat_features_list if self.cat_features_list else []
+
         X_enc = np.zeros(X.shape, dtype=float)
-        for i, p in enumerate(self.parents):
-            if p in self.cat_features_list:
+        for i, p in enumerate(actual_parents):
+            if p in cat_features:
                 col_data = X[:, i].astype(str).reshape(-1, 1)
                 X_enc[:, i] = self.encoders[i].transform(col_data).flatten()
             else:
@@ -84,9 +99,12 @@ class LGBMClassifierWrapper(BaseEstimator, ClassifierMixin):
         return self.model.predict(X_enc)
 
     def predict_proba(self, X):
+        actual_parents = sorted(self.parents) if self.parents else []
+        cat_features = self.cat_features_list if self.cat_features_list else []
+
         X_enc = np.zeros(X.shape, dtype=float)
-        for i, p in enumerate(self.parents):
-            if p in self.cat_features_list:
+        for i, p in enumerate(actual_parents):
+            if p in cat_features:
                 col_data = X[:, i].astype(str).reshape(-1, 1)
                 X_enc[:, i] = self.encoders[i].transform(col_data).flatten()
             else:

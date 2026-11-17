@@ -4,7 +4,7 @@ import os
 import warnings
 import sys
 from pathlib import Path
-
+import matplotlib.pyplot as plt
 current_file = Path(__file__).resolve()
 
 project_root = current_file.parents[2]
@@ -153,13 +153,6 @@ try:
     baseline_metrics = evaluate_sales_on_holdout(
         scm, feature_graph, test_sample, "BASELINE SCM", target_col="unit_sales"
     )
-
-    print("\n BASELINE SCM PREDICTION METRICS")
-    print(f"MAE:  {baseline_metrics['MAE']:.4f}")
-    print(f"RMSE: {baseline_metrics['RMSE']:.4f}")
-    print(f"MAPE: {baseline_metrics['MAPE']:.4f}")
-    print(f"R²:   {baseline_metrics['R2']:.4f}")
-
 except Exception as e:
     print(f"ERROR: Baseline evaluation failed: {e}")
     raise
