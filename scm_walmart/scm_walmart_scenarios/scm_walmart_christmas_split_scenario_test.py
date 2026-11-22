@@ -367,7 +367,8 @@ weights = np.concatenate([
     np.full(len(synthetic_dataset), 0.4)
 ])
 
-ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
+#ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
+ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")
