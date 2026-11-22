@@ -412,28 +412,28 @@ target_col = 'Weekly_Sales'
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=holdout_test_df,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CHRISTMAS_REGION.png"
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CHRISTMAS_REGION_test.png"
 )
 
 # 2. Source vs Synthetic
 run_whyshift_region_analysis(
     df_source=source_df, df_target=synthetic_dataset,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CHRISTMAS_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CHRISTMAS_REGION_test.png"
 )
 
 # 3. Source vs Hybrid
 run_whyshift_region_analysis(
     df_source=source_df, df_target=hybrid_dataset,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CHRISTMAS_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CHRISTMAS_REGION_test.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=holdout_test_df,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CHRISTMAS_REGION.png"
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CHRISTMAS_REGION_test.png"
 )
 
 #%%
