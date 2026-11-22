@@ -215,8 +215,8 @@ try:
         try:
             fit_causal_model_of_target(scm, node, adaptation_df)
             refit_count += 1
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Failed refit on {node}: {e}")
     print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
 except Exception as e:
     print(f"ERROR: Domain adaptation failed: {e}")
