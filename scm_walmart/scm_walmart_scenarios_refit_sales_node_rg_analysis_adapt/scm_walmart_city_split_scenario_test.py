@@ -321,7 +321,12 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
-
+sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
+sales_mech = scm.causal_mechanism('Weekly_Sales')
+X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
+clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
+synthetic_dataset['Weekly_Sales'] = np.clip(clean_sales, a_min=0, a_max=None)
+print(f"Denoised Synthetic Weekly_Sales Mean: {synthetic_dataset['Weekly_Sales'].mean():.2f}")
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -391,7 +396,12 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
+weights = np.concatenate([
+    np.ones(len(source_df)),
+    np.full(len(synthetic_dataset), 0.05)
+])
+
+ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")
@@ -438,26 +448,26 @@ target_col = 'Weekly_Sales'
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=holdout_test_df,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CITY_REGION.png"
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CITY_REGION_test.png"
 )
 
 # 2. Source vs Synthetic
 run_whyshift_region_analysis(
     df_source=source_df, df_target=synthetic_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CITY_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CITY_REGION_test.png"
 )
 
 # 3. Source vs Hybrid
 run_whyshift_region_analysis(
     df_source=source_df, df_target=hybrid_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CITY_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CITY_REGION_test.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=holdout_test_df,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CITY_REGION.png"
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CITY_REGION_test.png"
 )

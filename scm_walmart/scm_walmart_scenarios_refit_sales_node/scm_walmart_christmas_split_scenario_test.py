@@ -247,7 +247,10 @@ aligned_week_cos = sampled_target['WeekOfYear_cos'].values
 aligned_christmas = sampled_target['Is_Christmas_Season'].values
 aligned_year_progress = sampled_target['Year_Progress'].values
 aligned_month_progress = sampled_target['Month_Progress'].values
-
+aligned_holiday = sampled_target['IsHoliday'].values
+aligned_near_holiday = sampled_target['is_near_holiday'].values
+aligned_holiday_prox = sampled_target['holiday_proximity'].values
+aligned_hol_weight = sampled_target['holiday_weight'].values
 
 iter_month_sin = itertools.cycle(aligned_month_sin)
 iter_month_cos = itertools.cycle(aligned_month_cos)
@@ -256,7 +259,10 @@ iter_week_cos = itertools.cycle(aligned_week_cos)
 iter_christmas = itertools.cycle(aligned_christmas)
 iter_year_progress = itertools.cycle(aligned_year_progress)
 iter_month_progress = itertools.cycle(aligned_month_progress)
-
+iter_holiday = itertools.cycle(aligned_holiday)
+iter_near_holiday = itertools.cycle(aligned_near_holiday)
+iter_hol_prox = itertools.cycle(aligned_holiday_prox)
+iter_hol_weight = itertools.cycle(aligned_hol_weight)
 
 def int_month_sin(x): return next(iter_month_sin)
 def int_month_cos(x): return next(iter_month_cos)
@@ -265,7 +271,10 @@ def int_week_cos(x): return next(iter_week_cos)
 def int_christmas(x): return next(iter_christmas)
 def int_year_progress(x): return next(iter_year_progress)
 def int_month_progress(x): return next(iter_month_progress)
-
+def int_holiday(x): return next(iter_holiday)
+def int_near_holiday(x): return next(iter_near_holiday)
+def int_hol_prox(x): return next(iter_hol_prox)
+def int_hol_weight(x): return next(iter_hol_weight)
 
 
 interventions_dict = {
@@ -275,7 +284,11 @@ interventions_dict = {
     'WeekOfYear_cos': int_week_cos,
     'Is_Christmas_Season': int_christmas,
     'Year_Progress': int_year_progress,
-    'Month_Progress': int_month_progress
+    'Month_Progress': int_month_progress,
+    'IsHoliday': int_holiday,
+    'is_near_holiday': int_near_holiday,
+    'holiday_proximity': int_hol_prox,
+    'holiday_weight': int_hol_weight,
 }
 
 print("\nGenerating synthetic data with paired Temporal & Holiday Interventions...")
@@ -297,7 +310,12 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
-
+sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
+sales_mech = scm.causal_mechanism('Weekly_Sales')
+X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
+clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
+synthetic_dataset['Weekly_Sales'] = np.clip(clean_sales, a_min=0, a_max=None)
+print(f"Denoised Synthetic Weekly_Sales Mean: {synthetic_dataset['Weekly_Sales'].mean():.2f}")
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -366,7 +384,12 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
+weights = np.concatenate([
+    np.ones(len(source_df)),
+    np.full(len(synthetic_dataset), 0.05)
+])
+
+ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")
@@ -411,28 +434,28 @@ target_col = 'Weekly_Sales'
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=holdout_test_df,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CHRISTMAS_REGION.png"
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TARGET_SYNTHETIC_CHRISTMAS_REGION_test.png"
 )
 
 # 2. Source vs Synthetic
 run_whyshift_region_analysis(
     df_source=source_df, df_target=synthetic_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CHRISTMAS_REGION.png"
+    source_name="Source", target_name="Synthetic", plot_filename="WALMART_SOURCE_SYNTHETIC_CHRISTMAS_REGION_test.png"
 )
 
 # 3. Source  vs Hybrid
 run_whyshift_region_analysis(
     df_source=source_df, df_target=hybrid_dataset,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CHRISTMAS_REGION.png"
+    source_name="Source", target_name="Hybrid", plot_filename="WALMART_SOURCE_HYBRID_CHRISTMAS_REGION_test.png"
 )
 
 # 4. Hybrid vs Target
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=holdout_test_df,
     target_col=target_col, categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CHRISTMAS_REGION.png"
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TARGET_CHRISTMAS_REGION_test.png"
 )
 
 #%%

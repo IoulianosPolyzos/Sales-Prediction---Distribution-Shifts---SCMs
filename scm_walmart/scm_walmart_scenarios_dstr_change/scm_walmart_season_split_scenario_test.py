@@ -236,6 +236,12 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
+sales_mech = scm.causal_mechanism('Weekly_Sales')
+X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
+clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
+synthetic_dataset['Weekly_Sales'] = np.clip(clean_sales, a_min=0, a_max=None)
+print(f"Denoised Synthetic Weekly_Sales Mean: {synthetic_dataset['Weekly_Sales'].mean():.2f}")
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -299,7 +305,12 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
-ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
+weights = np.concatenate([
+    np.ones(len(source_df)),
+    np.full(len(synthetic_dataset), 0.05)
+])
+
+ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")
 y_pred_hbr = ml_model_hbr.predict(X_test)
@@ -325,28 +336,28 @@ target_col = 'Weekly_Sales'
 run_whyshift_region_analysis(
     df_source=synthetic_dataset, df_target=test_df,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TEST_SYNTHETIC_SEASON_REGION.png"
+    source_name="Synthetic", target_name="Target", plot_filename="WALMART_TEST_SYNTHETIC_SEASON_REGION_test.png"
 )
 
 # 2. Dtrain vs Synthetic
 run_whyshift_region_analysis(
     df_source=train_df, df_target=synthetic_dataset,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Dtrain", target_name="Synthetic", plot_filename="WALMART_TRAIN_SYNTHETIC_SEASON_REGION.png"
+    source_name="Dtrain", target_name="Synthetic", plot_filename="WALMART_TRAIN_SYNTHETIC_SEASON_REGION_test.png"
 )
 
 # 3. Dtrain vs Hybrid
 run_whyshift_region_analysis(
     df_source=train_df, df_target=hybrid_dataset,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Dtrain", target_name="Hybrid", plot_filename="WALMART_TRAIN_HYBRID_SEASON_REGION.png"
+    source_name="Dtrain", target_name="Hybrid", plot_filename="WALMART_TRAIN_HYBRID_SEASON_REGION_test.png"
 )
 
 # 4. Hybrid vs Test
 run_whyshift_region_analysis(
     df_source=hybrid_dataset, df_target=test_df,
     target_col='Weekly_Sales', categorical_nodes=categorical_nodes, lgb_params=lgb_params,
-    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TEST_SEASON_REGION.png"
+    source_name="Hybrid", target_name="Target", plot_filename="WALMART_HYBRID_TEST_SEASON_REGION_test.png"
 )
 #%%
 
