@@ -158,17 +158,21 @@ except Exception as e:
     raise
 
 # %%
+# %%
 print("PART 8: CAUSAL GRAPH EVALUATION (FALSIFICATION)")
 
 try:
-    # Evaluate the structural and mechanism assumptions of the SCM
-    print("Running causal model evaluation (this may take some time)...")
+    # Sample test_df to avoid OOM during conditional independence tests
+    eval_sample_size = min(10000, len(test_df))
+    eval_df = test_df.sample(n=eval_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
+
+    print(f"Running causal model evaluation on {len(eval_df)} samples...")
     evaluation_metrics = gcm.evaluate_causal_model(
         scm,
-        test_df,
+        eval_df,
         evaluate_causal_mechanisms=True,
         evaluate_causal_structure=True,
-        max_num_samples=-1
+        max_num_samples=eval_sample_size
     )
 
     # Plot evaluation results and save to file
