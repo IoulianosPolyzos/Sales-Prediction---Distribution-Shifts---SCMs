@@ -384,7 +384,7 @@ print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
-    np.ones(len(source_df)),
+    np.ones(len(train_df)),
     np.full(len(synthetic_dataset), 0.05)
 ])
 
