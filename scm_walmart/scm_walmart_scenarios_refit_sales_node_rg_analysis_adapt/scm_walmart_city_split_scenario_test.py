@@ -250,22 +250,17 @@ region_tree = DecisionTreeRegressor(max_depth=4, min_samples_leaf=30, random_sta
 region_tree.fit(X_adapt_ord.values, shift_y_x, sample_weight=wB)
 
 # 4. Extract Rules and Filter Adaptation Data
-high_shift_regions = extract_high_shift_rules(region_tree, feature_names_ord, threshold_percentile=80)
+high_shift_regions = extract_high_shift_rules(region_tree, feature_names_ord, threshold_percentile=50)
 rule_features = set()
 
-if high_shift_regions and len(high_shift_regions[0][0]) > 0:
-    top_rule_conditions = high_shift_regions[0][0]
-    query_str = " & ".join(top_rule_conditions)
-    print(f"\nTop High-Shift Rule identified: {query_str}")
-
-    # Extract the exact feature names used in the rule
+valid_rules = ["(" + " & ".join(r[0]) + ")" for r in high_shift_regions if len(r[0]) > 0]
+if valid_rules:
+    query_str = " | ".join(valid_rules)
+    print(f"\nCombined High-Shift Rules ({len(valid_rules)} regions): {query_str}")
     rule_features = set(re.findall(r"\`([^\`]+)\`", query_str))
-
-    # Use the ordinal dataframe to evaluate the query and get the indices
     targeted_indices = X_adapt_ord.query(query_str).index
     targeted_adaptation_df = adaptation_df.iloc[targeted_indices].copy().reset_index(drop=True)
 else:
-    print("\nNo specific high-shift rule found. Using full adaptation_df.")
     targeted_adaptation_df = adaptation_df.copy()
 
 if len(targeted_adaptation_df) == 0:
@@ -292,11 +287,10 @@ interventions_dict = {
     'city': create_intervention_func(aligned_city)
 }
 
-# --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
 print("\nApplying Direct SCM Interventions from Region Analysis Rules:")
 for feature in rule_features:
-    # We avoid re-adding 'city' if the tree happened to split on it, as it's our base intervention
-    if feature in feature_graph.nodes and feature != 'city':
+    if feature in feature_graph.nodes and feature not in interventions_dict:
+        # Intervene directly on the SCM node by forcing it to sample from the rule's distribution
         feature_vals = sampled_target[feature].values
         interventions_dict[feature] = create_intervention_func(feature_vals)
         print(f"  -> Added intervention node: do({feature} = [Rule-based distribution])")
