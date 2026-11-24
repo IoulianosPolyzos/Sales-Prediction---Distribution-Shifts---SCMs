@@ -129,7 +129,12 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(train_df.columns)
 
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
-
+graph_dir = Path(CONFIG['checkpoint_dir'])
+plt.figure(figsize=(12, 8))
+pos = nx.spring_layout(macro_graph, seed=CONFIG['random_seed'], k=1.5)
+nx.draw(macro_graph, pos, with_labels=True, node_size=3000, node_color="lightblue", font_size=10, arrows=True)
+plt.savefig(graph_dir / "macro_graph.png", dpi=150, bbox_inches="tight")
+plt.close()
 # %%
 print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 
@@ -162,23 +167,33 @@ except Exception as e:
 print("PART 8: CAUSAL GRAPH EVALUATION (FALSIFICATION)")
 
 try:
-    # Sample test_df to avoid OOM during conditional independence tests
-    eval_sample_size = min(10000, len(test_df))
-    eval_df = test_df.sample(n=eval_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
-
-    print(f"Running causal model evaluation on {len(eval_df)} samples...")
+    mech_eval_df = test_df.sample(n=min(10000, len(test_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
     evaluation_metrics = gcm.evaluate_causal_model(
         scm,
-        eval_df,
+        mech_eval_df,
         evaluate_causal_mechanisms=True,
-        evaluate_causal_structure=True,
-        max_num_samples=eval_sample_size
+        evaluate_causal_structure=False,
+        max_num_samples=len(mech_eval_df)
     )
 
-    # Plot evaluation results and save to file
-    gcm.falsify.plot_evaluation_results(evaluation_metrics.graph_falsification)
-    plt.savefig("graph_falsification_favorita.png", dpi=150, bbox_inches='tight')
-    print("Graph falsification plot saved successfully to 'graph_falsification_favorita.png'")
+    struct_sample_size = min(1500, len(test_df))
+    struct_eval_df = test_df.sample(n=struct_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
+
+    print(f"Running graph falsification on {len(struct_eval_df)} samples with 12 jobs...")
+    falsification_result = gcm.falsify.falsify_graph(
+        feature_graph,
+        struct_eval_df,
+        n_permutations=20,
+        n_jobs=12,
+        plot_histogram=False
+    )
+
+    # Αποθήκευση του plot στον φάκελο checkpoints
+    plot_path = Path(CONFIG['checkpoint_dir']) / "graph_falsification.png"
+    gcm.falsify.plot_evaluation_results(falsification_result)
+    plt.savefig(plot_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"Graph falsification plot saved to '{plot_path}'")
 
 except Exception as e:
     print(f"ERROR: Causal evaluation/plotting failed: {e}")
