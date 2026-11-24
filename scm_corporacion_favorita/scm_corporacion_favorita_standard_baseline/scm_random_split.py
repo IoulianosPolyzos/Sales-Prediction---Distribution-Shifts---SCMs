@@ -164,33 +164,39 @@ except Exception as e:
 
 # %%
 # %%
+from functools import partial
+from dowhy.gcm.model_evaluation import EvaluateCausalModelConfig
+
+# %%
 print("PART 8: CAUSAL GRAPH EVALUATION (FALSIFICATION)")
 
 try:
-    mech_eval_df = test_df.sample(n=min(10000, len(test_df)), random_state=CONFIG['random_seed']).reset_index(drop=True)
+    eval_sample_size = min(1500, len(test_df))
+    eval_df = test_df.sample(n=eval_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
+
+    eval_config = EvaluateCausalModelConfig(
+        max_num_permutations_falsify=20,
+        n_jobs=12,
+        independence_test_falsify=partial(gcm.kernel_based, use_bootstrap=False, max_num_samples_run=500),
+        conditional_independence_test_falsify=partial(gcm.kernel_based, use_bootstrap=False, max_num_samples_run=500),
+    )
+
+    print(f"Running causal model evaluation on {len(eval_df)} samples with 12 jobs...")
     evaluation_metrics = gcm.evaluate_causal_model(
         scm,
-        mech_eval_df,
+        eval_df,
         evaluate_causal_mechanisms=True,
-        evaluate_causal_structure=False,
-        max_num_samples=len(mech_eval_df)
+        evaluate_invertibility_assumptions=False,
+        evaluate_overall_kl_divergence=True,
+        evaluate_causal_structure=True,
+        config=eval_config
     )
 
-    struct_sample_size = min(1500, len(test_df))
-    struct_eval_df = test_df.sample(n=struct_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
+    evaluation_metrics.plot_falsification_histogram = False
+    print(evaluation_metrics)
 
-    print(f"Running graph falsification on {len(struct_eval_df)}")
-    falsification_result = gcm.falsify.falsify_graph(
-        feature_graph,
-        struct_eval_df,
-        n_permutations=20,
-        n_jobs=12,
-        plot_histogram=False
-    )
-
-    # Αποθήκευση του plot στον φάκελο checkpoints
     plot_path = Path(CONFIG['checkpoint_dir']) / "graph_falsification.png"
-    gcm.falsify.plot_evaluation_results(falsification_result)
+    gcm.falsify.plot_evaluation_results(evaluation_metrics.graph_falsification)
     plt.savefig(plot_path, dpi=150, bbox_inches='tight')
     plt.close()
     print(f"Graph falsification plot saved to '{plot_path}'")
