@@ -117,7 +117,7 @@ print(f"  - Source instances: {len(source_domain_test)}")
 print(f"  - Target instances: {len(target_domain_test)}")
 
 # %%
-print("PART 3: PREPROCESSING")
+print("\nPART 3: PREPROCESSING")
 
 try:
     categorical_cols_to_exclude = [
@@ -131,6 +131,8 @@ try:
             try:
                 train_df[col] = pd.to_numeric(train_df[col], errors='raise')
                 test_df[col] = pd.to_numeric(test_df[col], errors='raise')
+                source_domain_train[col] = pd.to_numeric(source_domain_train[col], errors='raise')
+                target_domain_train[col] = pd.to_numeric(target_domain_train[col], errors='raise')
             except ValueError:
                 pass
 
@@ -142,12 +144,16 @@ try:
     for col in binary_nodes:
         train_df[col] = train_df[col].astype(int).astype(str)
         test_df[col] = test_df[col].astype(int).astype(str)
+        source_domain_train[col] = source_domain_train[col].astype(int).astype(str)
+        target_domain_train[col] = target_domain_train[col].astype(int).astype(str)
 
     # Cast nominal categoricals to string representation
     categorical_nodes = ["city", "state", "store_type", "family", "weather_condition", "store_nbr", "cluster", "class"]
     for col in categorical_nodes:
         train_df[col] = train_df[col].astype(str)
         test_df[col] = test_df[col].astype(str)
+        source_domain_train[col] = source_domain_train[col].astype(str)
+        target_domain_train[col] = target_domain_train[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -155,6 +161,7 @@ try:
 except Exception as e:
     print(f"ERROR: Preprocessing failed: {e}")
     raise
+
 
 # %%
 print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
