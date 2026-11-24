@@ -201,7 +201,7 @@ try:
     struct_sample_size = min(1500, len(test_df))
     struct_eval_df = test_df.sample(n=struct_sample_size, random_state=CONFIG['random_seed']).reset_index(drop=True)
 
-    print(f"Running graph falsification on {len(struct_eval_df)} samples with 12 jobs...")
+    print(f"Running graph falsification on {len(struct_eval_df)}")
     falsification_result = gcm.falsify.falsify_graph(
         feature_graph,
         struct_eval_df,
