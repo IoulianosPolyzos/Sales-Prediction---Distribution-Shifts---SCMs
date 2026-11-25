@@ -396,7 +396,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.0015)#0.0005
+    np.full(len(synthetic_dataset), 0.0003)#0.0005 -> mae 13411.91 rmse -> 24151.41 mape -> 1.68
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
