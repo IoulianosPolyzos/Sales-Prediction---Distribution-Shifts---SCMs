@@ -217,7 +217,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_type"
 STAGE_NAME = "type_adapted"
-USE_CHECKPOINT = False
+USE_CHECKPOINT = True
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
@@ -416,7 +416,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.002)
+    np.full(len(synthetic_dataset), 0.0003)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
