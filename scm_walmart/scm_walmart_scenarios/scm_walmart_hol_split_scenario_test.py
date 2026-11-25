@@ -36,7 +36,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis, save_checkpoint, load_checkpoint
 )
 
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
@@ -134,29 +134,29 @@ try:
         "Store", "Dept"
     ]
 
-    # Type coercion: Enforce continuous covariates to maintain numeric dtype formats.
     for col in source_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 pass
 
-    # Type coercion: Transform binary and nominal variables into categorical representations
-    # requisite for appropriate classification mechanism fitting within the SCM.
     binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -200,41 +200,94 @@ print(f"Direct children of Holidays: {set(macro_graph.successors('Holidays'))}")
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 # %%
-print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+# print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+#
+# scm = gcm.StructuralCausalModel(feature_graph)
+#
+# try:
+#     setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
+#     print("Fitting SCM on training data (Normal Days)...")
+#     gcm.fit(scm, source_df)
+#     print("✓ Initial fit complete")
+# except Exception as e:
+#     print(f"ERROR: Failed to fit SCM: {e}")
+#     raise
+#
+# # %%
+# print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+#
+# ordered_nodes = list(nx.topological_sort(feature_graph))
+# nodes_to_refit = [
+#     n for n in ordered_nodes
+#     if n in affected_feature_nodes and n != "Weekly_Sales"
+# ]
+#
+# print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+# try:
+#     refit_count = 0
+#     for node in nodes_to_refit:
+#         try:
+#             fit_causal_model_of_target(scm, node, adaptation_df)
+#             refit_count += 1
+#         except Exception as e:
+#             print(f"Failed refit on {node}: {e}")
+#     print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+# except Exception as e:
+#     print(f"ERROR: Domain adaptation failed: {e}")
+#     raise
 
-scm = gcm.StructuralCausalModel(feature_graph)
+CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_hol"
+STAGE_NAME = "hol_adapted"
+USE_CHECKPOINT = False
 
-try:
-    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
-    print("Fitting SCM on training data (Normal Days)...")
-    gcm.fit(scm, source_df)
-    print("✓ Initial fit complete")
-except Exception as e:
-    print(f"ERROR: Failed to fit SCM: {e}")
-    raise
+scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
+meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
 
-# %%
-print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+if USE_CHECKPOINT and scm_files and meta_files:
+    print("PART 6 & 7: LOADING SCM FROM CHECKPOINT")
+    scm, metadata = load_checkpoint(scm_files[-1], meta_files[-1])
+else:
+    print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+    scm = gcm.StructuralCausalModel(feature_graph)
+    try:
+        setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
+        print("Fitting SCM on training data (Normal Days)...")
+        gcm.fit(scm, source_df)
+        print("✓ Initial fit complete")
+    except Exception as e:
+        print(f"ERROR: Failed to fit SCM: {e}")
+        raise
 
-ordered_nodes = list(nx.topological_sort(feature_graph))
-nodes_to_refit = [
-    n for n in ordered_nodes
-    if n in affected_feature_nodes and n != "Weekly_Sales"
-]
+    print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+    ordered_nodes = list(nx.topological_sort(feature_graph))
+    nodes_to_refit = [
+        n for n in ordered_nodes
+        if n in affected_feature_nodes and n != "Weekly_Sales"
+    ]
 
-print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
-try:
-    refit_count = 0
-    for node in nodes_to_refit:
-        try:
-            fit_causal_model_of_target(scm, node, adaptation_df)
-            refit_count += 1
-        except Exception as e:
-            print(f"Failed refit on {node}: {e}")
-    print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
-except Exception as e:
-    print(f"ERROR: Domain adaptation failed: {e}")
-    raise
+    print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+    try:
+        refit_count = 0
+        for node in nodes_to_refit:
+            try:
+                fit_causal_model_of_target(scm, node, adaptation_df)
+                refit_count += 1
+            except Exception as e:
+                print(f"Failed refit on {node}: {e}")
+        print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+    except Exception as e:
+        print(f"ERROR: Domain adaptation failed: {e}")
+        raise
+
+    sales_parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
+    save_checkpoint(
+        scm=scm,
+        feature_graph=feature_graph,
+        parents=sales_parents,
+        metrics={},
+        checkpoint_dir=CHECKPOINT_DIR,
+        stage_name=STAGE_NAME
+    )
 
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
