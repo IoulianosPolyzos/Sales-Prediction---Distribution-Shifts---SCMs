@@ -188,94 +188,43 @@ print(f"Direct children of Holidays: {set(macro_graph.successors('Holidays'))}")
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 
-# print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
-#
-# scm = gcm.StructuralCausalModel(feature_graph)
-#
-# try:
-#     setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
-#     print("Fitting SCM on training data (Normal Days)...")
-#     gcm.fit(scm, source_df)
-#     print("✓ Initial fit complete")
-# except Exception as e:
-#     print(f"ERROR: Failed to fit SCM: {e}")
-#     raise
-#
-# #%%
-#
-# print("PART 7: SUPERVISED DOMAIN ADAPTATION")
-#
-# ordered_nodes = list(nx.topological_sort(feature_graph))
-# nodes_to_refit = [
-#     n for n in ordered_nodes
-#     if n in affected_feature_nodes and n != "Weekly_Sales"
-# ]
-#
-# print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
-# try:
-#     refit_count = 0
-#     for node in nodes_to_refit:
-#         try:
-#             fit_causal_model_of_target(scm, node, adaptation_df)
-#             refit_count += 1
-#         except Exception as e:
-#             print(f"Failed refit on {node}: {e}")
-#     print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
-# except Exception as e:
-#     print(f"ERROR: Domain adaptation failed: {e}")
-#     raise
-CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_christmas"
-STAGE_NAME = "christmas_adapted"
-USE_CHECKPOINT = True
+print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
 
-scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
-meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
+scm = gcm.StructuralCausalModel(feature_graph)
 
-if USE_CHECKPOINT and scm_files and meta_files:
-    print("PART 6 & 7: LOADING SCM FROM CHECKPOINT")
-    scm, metadata = load_checkpoint(scm_files[-1], meta_files[-1])
-else:
-    print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
-    scm = gcm.StructuralCausalModel(feature_graph)
-    try:
-        setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
-        print("Fitting SCM on training data (Normal Days)...")
-        gcm.fit(scm, source_df)
-        print("✓ Initial fit complete")
-    except Exception as e:
-        print(f"ERROR: Failed to fit SCM: {e}")
-        raise
+try:
+    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
+    print("Fitting SCM on training data (Normal Days)...")
+    gcm.fit(scm, source_df)
+    print("✓ Initial fit complete")
+except Exception as e:
+    print(f"ERROR: Failed to fit SCM: {e}")
+    raise
 
-    print("PART 7: SUPERVISED DOMAIN ADAPTATION")
-    ordered_nodes = list(nx.topological_sort(feature_graph))
-    nodes_to_refit = [
-        n for n in ordered_nodes
-        if n in affected_feature_nodes and n != "Weekly_Sales"
-    ]
+#%%
 
-    print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
-    try:
-        refit_count = 0
-        for node in nodes_to_refit:
-            try:
-                fit_causal_model_of_target(scm, node, adaptation_df)
-                refit_count += 1
-            except Exception as e:
-                print(f"Failed refit on {node}: {e}")
-        print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
-    except Exception as e:
-        print(f"ERROR: Domain adaptation failed: {e}")
-        raise
+print("PART 7: SUPERVISED DOMAIN ADAPTATION")
 
-    sales_parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
-    save_checkpoint(
-        scm=scm,
-        feature_graph=feature_graph,
-        parents=sales_parents,
-        metrics={},
-        checkpoint_dir=CHECKPOINT_DIR,
-        stage_name=STAGE_NAME
-    )
+ordered_nodes = list(nx.topological_sort(feature_graph))
+nodes_to_refit = [
+    n for n in ordered_nodes
+    if n in affected_feature_nodes and n != "Weekly_Sales"
+]
+
+print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+try:
+    refit_count = 0
+    for node in nodes_to_refit:
+        try:
+            fit_causal_model_of_target(scm, node, adaptation_df)
+            refit_count += 1
+        except Exception as e:
+            print(f"Failed refit on {node}: {e}")
+    print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+except Exception as e:
+    print(f"ERROR: Domain adaptation failed: {e}")
+    raise
+
 #%%
 
 print("PART 9: SYNTHETIC DATA GENERATION & ML TRAINING")
