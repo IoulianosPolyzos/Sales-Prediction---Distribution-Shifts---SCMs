@@ -71,4 +71,13 @@ def build_feature_graph(df_columns):
                 if src_col in df_columns and tgt_col in df_columns:
                     feature_graph.add_edge(src_col, tgt_col)
 
+    intra_store_edges = [
+        ("Store", "Type"),
+        ("Store", "Size"),
+        ("Store", "Dept"),
+    ]
+    for src_col, tgt_col in intra_store_edges:
+        if src_col in df_columns and tgt_col in df_columns:
+            feature_graph.add_edge(src_col, tgt_col)
+
     return feature_graph, causal_groups, macro_graph
