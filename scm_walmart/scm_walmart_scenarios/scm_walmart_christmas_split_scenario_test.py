@@ -302,7 +302,10 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique())
 
+    
 sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
 sales_mech = scm.causal_mechanism('Weekly_Sales')
 X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
