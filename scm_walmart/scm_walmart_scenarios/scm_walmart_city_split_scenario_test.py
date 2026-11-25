@@ -36,7 +36,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis, load_checkpoint, save_checkpoint
 )
 
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
@@ -174,41 +174,95 @@ print(f"Direct children of City: {set(macro_graph.successors('City'))}")
 print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
 
 # %%
-print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+# print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+#
+# scm = gcm.StructuralCausalModel(feature_graph)
+#
+# try:
+#     setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
+#     print(f"Fitting SCM on training data (Source Cities)...")
+#     gcm.fit(scm, source_df)
+#     print("✓ Initial fit complete")
+# except Exception as e:
+#     print(f"ERROR: Failed to fit SCM: {e}")
+#     raise
+#
+# # %%
+# print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+#
+# ordered_nodes = list(nx.topological_sort(feature_graph))
+# nodes_to_refit = [
+#     n for n in ordered_nodes
+#     if n in affected_feature_nodes and n != "Weekly_Sales"
+# ]
+#
+# print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+# try:
+#     refit_count = 0
+#     for node in nodes_to_refit:
+#         try:
+#             fit_causal_model_of_target(scm, node, adaptation_df)
+#             refit_count += 1
+#         except Exception as e:
+#             print(f"Failed refit on {node}: {e}")
+#     print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+# except Exception as e:
+#     print(f"ERROR: Domain adaptation failed: {e}")
+#     raise
 
-scm = gcm.StructuralCausalModel(feature_graph)
 
-try:
-    setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
-    print(f"Fitting SCM on training data (Source Cities)...")
-    gcm.fit(scm, source_df)
-    print("✓ Initial fit complete")
-except Exception as e:
-    print(f"ERROR: Failed to fit SCM: {e}")
-    raise
+CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_city"
+STAGE_NAME = "city_adapted"
+USE_CHECKPOINT = False
 
-# %%
-print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
+meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
 
-ordered_nodes = list(nx.topological_sort(feature_graph))
-nodes_to_refit = [
-    n for n in ordered_nodes
-    if n in affected_feature_nodes and n != "Weekly_Sales"
-]
+if USE_CHECKPOINT and scm_files and meta_files:
+    print("PART 6 & 7: LOADING SCM FROM CHECKPOINT")
+    scm, metadata = load_checkpoint(scm_files[-1], meta_files[-1])
+else:
+    print("PART 6: FITTING STRUCTURAL CAUSAL MODEL ON TRAINING DATA")
+    scm = gcm.StructuralCausalModel(feature_graph)
+    try:
+        setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
+        print("Fitting SCM on training data (Normal Days)...")
+        gcm.fit(scm, source_df)
+        print("✓ Initial fit complete")
+    except Exception as e:
+        print(f"ERROR: Failed to fit SCM: {e}")
+        raise
 
-print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
-try:
-    refit_count = 0
-    for node in nodes_to_refit:
-        try:
-            fit_causal_model_of_target(scm, node, adaptation_df)
-            refit_count += 1
-        except Exception as e:
-            print(f"Failed refit on {node}: {e}")
-    print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
-except Exception as e:
-    print(f"ERROR: Domain adaptation failed: {e}")
-    raise
+    print("PART 7: SUPERVISED DOMAIN ADAPTATION")
+    ordered_nodes = list(nx.topological_sort(feature_graph))
+    nodes_to_refit = [
+        n for n in ordered_nodes
+        if n in affected_feature_nodes and n != "Weekly_Sales"
+    ]
+
+    print(f"\nAdapting mechanisms to adaptation set ({len(nodes_to_refit)} nodes)...")
+    try:
+        refit_count = 0
+        for node in nodes_to_refit:
+            try:
+                fit_causal_model_of_target(scm, node, adaptation_df)
+                refit_count += 1
+            except Exception as e:
+                print(f"Failed refit on {node}: {e}")
+        print(f"✓ Concept shift adaptation complete ({refit_count}/{len(nodes_to_refit)} nodes)")
+    except Exception as e:
+        print(f"ERROR: Domain adaptation failed: {e}")
+        raise
+
+    sales_parents = sorted(list(feature_graph.predecessors("Weekly_Sales")))
+    save_checkpoint(
+        scm=scm,
+        feature_graph=feature_graph,
+        parents=sales_parents,
+        metrics={},
+        checkpoint_dir=CHECKPOINT_DIR,
+        stage_name=STAGE_NAME
+    )
 
 # %%
 print("PART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
@@ -252,6 +306,19 @@ X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
 clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
 synthetic_dataset['Weekly_Sales'] = np.clip(clean_sales, a_min=0, a_max=None)
 print(f"Denoised Synthetic Weekly_Sales Mean: {synthetic_dataset['Weekly_Sales'].mean():.2f}")
+
+real = set(map(tuple, df[['Store','Dept']].astype(str).values))
+syn = synthetic_dataset[['Store','Dept']].astype(str).apply(tuple, axis=1)
+print("% impossible Store-Dept combos:", (~syn.isin(real)).mean()*100)
+print("max Types per Store in synthetic:", synthetic_dataset.groupby('Store')['Type'].nunique().max())
+
+print("first check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique())
+print("second check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique(), adaptation_df[c].nunique())
+
 
 print("\nTrain ML model on Synthetic Dataset...")
 
@@ -315,6 +382,10 @@ hybrid_dataset = create_hybrid_dataset(
     target_col='Weekly_Sales'
 )
 
+print(df['IsHoliday'].unique(), source_df['IsHoliday'].unique())
+print(synthetic_dataset[classifier_nodes].isna().mean())
+print(X_test[classifier_nodes].isna().mean())
+print(hybrid_dataset[classifier_nodes].isna().mean())
 
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
@@ -325,7 +396,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.003)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)

@@ -272,6 +272,17 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+real = set(map(tuple, df[['Store','Dept']].astype(str).values))
+syn = synthetic_dataset[['Store','Dept']].astype(str).apply(tuple, axis=1)
+print("% impossible Store-Dept combos:", (~syn.isin(real)).mean()*100)
+print("max Types per Store in synthetic:", synthetic_dataset.groupby('Store')['Type'].nunique().max())
+
+print("first check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique())
+print("second check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique(), adaptation_df[c].nunique())
 
 sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
 sales_mech = scm.causal_mechanism('Weekly_Sales')
@@ -342,7 +353,10 @@ hybrid_dataset = create_hybrid_dataset(
     target_col='Weekly_Sales'
 )
 
-
+print(df['IsHoliday'].unique(), source_df['IsHoliday'].unique())
+print(synthetic_dataset[classifier_nodes].isna().mean())
+print(X_test[classifier_nodes].isna().mean())
+print(hybrid_dataset[classifier_nodes].isna().mean())
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']

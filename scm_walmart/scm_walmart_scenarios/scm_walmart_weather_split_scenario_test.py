@@ -250,6 +250,20 @@ X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
 clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
 synthetic_dataset['Weekly_Sales'] = np.clip(clean_sales, a_min=0, a_max=None)
 print(f"Denoised Synthetic Weekly_Sales Mean: {synthetic_dataset['Weekly_Sales'].mean():.2f}")
+
+real = set(map(tuple, df[['Store','Dept']].astype(str).values))
+syn = synthetic_dataset[['Store','Dept']].astype(str).apply(tuple, axis=1)
+print("% impossible Store-Dept combos:", (~syn.isin(real)).mean()*100)
+print("max Types per Store in synthetic:", synthetic_dataset.groupby('Store')['Type'].nunique().max())
+
+print("first check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique())
+print("second check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique(), adaptation_df[c].nunique())
+
+
 print("\nTrain ML model on Synthetic Dataset...")
 
 # Extrapolate functional mapping strictly via the synthetically generated Interventional distribution
@@ -312,7 +326,10 @@ hybrid_dataset = create_hybrid_dataset(
     target_col='Weekly_Sales'
 )
 
-
+print(df['IsHoliday'].unique(), source_df['IsHoliday'].unique())
+print(synthetic_dataset[classifier_nodes].isna().mean())
+print(X_test[classifier_nodes].isna().mean())
+print(hybrid_dataset[classifier_nodes].isna().mean())
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
