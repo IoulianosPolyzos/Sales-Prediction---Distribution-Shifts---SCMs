@@ -169,9 +169,13 @@ edges_to_remove = [
     ('Month_cos', 'Weekly_Sales'),
     ('WeekOfYear_sin', 'Weekly_Sales'),
     ('WeekOfYear_cos', 'Weekly_Sales'),
-    ('Is_Christmas_Season', 'Weekly_Sales'),
     ('Year_Progress', 'Weekly_Sales'),
-    ('Month_Progress', 'Weekly_Sales')
+    ('Month_Progress', 'Weekly_Sales'),
+    ('IsHoliday', 'Weekly_Sales'),
+    ('is_near_holiday', 'Weekly_Sales'),
+    ('holiday_proximity', 'Weekly_Sales'),
+    ('holiday_weight', 'Weekly_Sales'),
+    ('Is_Christmas_Season', 'Weekly_Sales'),
 ]
 
 for src, tgt in edges_to_remove:

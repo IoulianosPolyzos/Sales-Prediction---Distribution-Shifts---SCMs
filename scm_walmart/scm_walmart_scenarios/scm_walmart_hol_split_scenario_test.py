@@ -181,11 +181,14 @@ edges_to_remove = [
     ('Month_cos', 'Weekly_Sales'),
     ('WeekOfYear_sin', 'Weekly_Sales'),
     ('WeekOfYear_cos', 'Weekly_Sales'),
-    ('IsHoliday', 'Weekly_Sales'),
     ('Year_Progress', 'Weekly_Sales'),
-    ('Month_Progress', 'Weekly_Sales')
+    ('Month_Progress', 'Weekly_Sales'),
+    ('IsHoliday', 'Weekly_Sales'),
+    ('is_near_holiday', 'Weekly_Sales'),
+    ('holiday_proximity', 'Weekly_Sales'),
+    ('holiday_weight', 'Weekly_Sales'),
+    ('Is_Christmas_Season', 'Weekly_Sales'),
 ]
-
 for src, tgt in edges_to_remove:
     if feature_graph.has_edge(src, tgt):
         feature_graph.remove_edge(src, tgt)
@@ -238,7 +241,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_hol"
 STAGE_NAME = "hol_adapted"
-USE_CHECKPOINT = True
+USE_CHECKPOINT = False
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
