@@ -284,7 +284,7 @@ print("PART 9: SYNTHETIC DATA GENERATION & ML TRAINING")
 print("\nExecuting Intervention: Changing days to Christmas (Is_Christmas_Season = 1)...")
 print("\nExecuting Aligned Intervention: Changing days to Christmas (Is_Christmas_Season = 1) with correct Dates...")
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = len(source_df)
 
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
