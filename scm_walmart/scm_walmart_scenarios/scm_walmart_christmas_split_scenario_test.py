@@ -302,10 +302,13 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+print("first check")
 for c in interventions_dict:
     print(c, synthetic_dataset[c].nunique())
+print("second check")
+for c in interventions_dict:
+    print(c, synthetic_dataset[c].nunique(), adaptation_df[c].nunique())
 
-    
 sales_parents = sorted(list(feature_graph.predecessors('Weekly_Sales')))
 sales_mech = scm.causal_mechanism('Weekly_Sales')
 X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
@@ -373,6 +376,11 @@ hybrid_dataset = create_hybrid_dataset(
     classifier_nodes=classifier_nodes,
     target_col='Weekly_Sales'
 )
+print(df['IsHoliday'].unique(), source_df['IsHoliday'].unique())
+print(synthetic_dataset[classifier_nodes].isna().mean())
+print(X_test[classifier_nodes].isna().mean())
+print(hybrid_dataset[classifier_nodes].isna().mean())
+
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])
 y_hybrid = hybrid_dataset['Weekly_Sales']
