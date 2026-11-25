@@ -226,7 +226,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 #     raise
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_christmas"
 STAGE_NAME = "christmas_adapted"
-USE_CHECKPOINT = True  # Βάλε False αν αλλάξεις το γράφο ή τα features και θες re-fit
+USE_CHECKPOINT = True
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
