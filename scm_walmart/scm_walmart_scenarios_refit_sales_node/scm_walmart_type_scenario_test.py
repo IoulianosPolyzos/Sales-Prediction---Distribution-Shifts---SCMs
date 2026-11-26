@@ -115,8 +115,8 @@ print("✓ Domain separation verified: No overlap between Store Numbers")
 
 # %%
 
-# --- Section III: Feature Space Normalization & Type Casting ---
 print("PART 3: PREPROCESSING")
+
 
 try:
     categorical_cols_to_exclude = [
@@ -124,30 +124,29 @@ try:
         "Store", "Dept"
     ]
 
-    # Explicitly cast continuous covariates to numeric types across all partitions
     for col in source_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 pass
 
-    # Standardize boolean/binary indicators as string-type.sh categorical nodes
-    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season", "Is_Summer", "Is_Month_Start",
-                    "Is_Month_End"]
+    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
-    # Cast high-cardinality nominal variables
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -351,9 +350,8 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.0003)
 ])
-
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")

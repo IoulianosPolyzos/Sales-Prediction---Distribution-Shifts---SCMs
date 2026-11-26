@@ -115,7 +115,7 @@ print("✓ No overlap between TRAIN/TEST cities")
 
 print("PART 3: PREPROCESSING")
 
-# Strictly enforce variable typing to align with causal mechanism assumptions
+
 try:
     categorical_cols_to_exclude = [
         "city", "Type", "weather_condition",
@@ -128,21 +128,23 @@ try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 pass
 
-    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season", "Is_Summer", "Is_Month_Start",
-                    "Is_Month_End"]
+    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -159,8 +161,15 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
 # Surgical Removal for City Shift: enforce mediated pathways
-if feature_graph.has_edge('city', 'Weekly_Sales'):
-    feature_graph.remove_edge('city', 'Weekly_Sales')
+edges_to_remove = [
+    ('city', 'Weekly_Sales'),
+    ('Store', 'Weekly_Sales'),
+    ('Type', 'Weekly_Sales'),
+]
+
+for src, tgt in edges_to_remove:
+    if feature_graph.has_edge(src, tgt):
+        feature_graph.remove_edge(src, tgt)
 
 # Identify causal descendants impacted by the intervention
 affected_groups = get_all_descendants(macro_graph, "City")
@@ -216,12 +225,29 @@ num_synthetic_samples = len(target_df)
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 aligned_city = sampled_target['city'].values
+aligned_store = sampled_target['Store'].values
+aligned_type = sampled_target['Type'].values
+aligned_size = sampled_target['Size'].values
+aligned_dept = sampled_target['Dept'].values
 
 iter_city = itertools.cycle(aligned_city)
+iter_store = itertools.cycle(aligned_store)
+iter_type = itertools.cycle(aligned_type)
+iter_size = itertools.cycle(aligned_size)
+iter_dept = itertools.cycle(aligned_dept)
 
 def int_city(x): return next(iter_city)
+def int_store(x): return next(iter_store)
+def int_type(x): return next(iter_type)
+def int_size(x): return next(iter_size)
+def int_dept(x): return next(iter_dept)
+
 interventions_dict = {
-    'city': int_city
+    'city': int_city,
+    'Store': int_store,
+    'Type': int_type,
+    'Size': int_size,
+    'Dept': int_dept,
 }
 
 # 1. Synthetic Data Generation via Utility
@@ -323,7 +349,6 @@ weights = np.concatenate([
     np.ones(len(source_df)),
     np.full(len(synthetic_dataset), 0.05)
 ])
-
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")

@@ -132,6 +132,7 @@ print("✓ Domain separation verified: No overlap between Normal/Holiday days")
 #%%
 
 
+
 # PHASE 3: Data Transformation and Preprocessing
 
 print("PART 3: PREPROCESSING")
@@ -143,29 +144,29 @@ try:
         "Store", "Dept"
     ]
 
-    # Type coercion: Enforce continuous covariates to maintain numeric dtype formats.
     for col in source_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 pass
 
-    # Type coercion: Transform binary and nominal variables into categorical representations
-    # requisite for appropriate classification mechanism fitting within the SCM.
     binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -192,9 +193,13 @@ edges_to_remove = [
     ('Month_cos', 'Weekly_Sales'),
     ('WeekOfYear_sin', 'Weekly_Sales'),
     ('WeekOfYear_cos', 'Weekly_Sales'),
-    ('IsHoliday', 'Weekly_Sales'),
     ('Year_Progress', 'Weekly_Sales'),
-    ('Month_Progress', 'Weekly_Sales')
+    ('Month_Progress', 'Weekly_Sales'),
+    ('IsHoliday', 'Weekly_Sales'),
+    ('is_near_holiday', 'Weekly_Sales'),
+    ('holiday_proximity', 'Weekly_Sales'),
+    ('holiday_weight', 'Weekly_Sales'),
+    ('Is_Christmas_Season', 'Weekly_Sales'),
 ]
 
 for src, tgt in edges_to_remove:
@@ -402,7 +407,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.75)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
