@@ -139,6 +139,7 @@ def get_size_normalized_weights(
 
 
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
 from lightgbm import LGBMClassifier
 
 def get_label_free_hybrid_weights(
@@ -147,36 +148,40 @@ def get_label_free_hybrid_weights(
     X_s = source_df.drop(columns=[target_col], errors="ignore")
     X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
 
-    X_dom = pd.concat([X_s, X_t], ignore_index=True)
+    # Κρατάμε ΜΟΝΟ τους ενεργούς γονείς του target_col στον αιτιακό γράφο
+    active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
+    active_ratio = len(active_cols) / max(len(X_s.columns), 1)
+
+    X_dom = pd.concat([X_s[active_cols], X_t[active_cols]], ignore_index=True)
     y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
+
     for col in X_dom.columns:
         if col in categorical_nodes or X_dom[col].dtype == "object":
             X_dom[col] = X_dom[col].astype("category")
 
-    idx = np.random.RandomState(42).choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
-    clf = LGBMClassifier(
-        n_estimators=50, max_depth=4, importance_type="gain", random_state=42, verbose=-1
-    )
-    clf.fit(X_dom.iloc[idx], y_dom[idx])
-    auc = roc_auc_score(y_dom[idx], clf.predict_proba(X_dom.iloc[idx])[:, 1])
+    # Subsample & out-of-sample έλεγχος ώστε να μην απομνημονεύει Dept / Size
+    rng = np.random.RandomState(42)
+    idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
+    X_sub, y_sub = X_dom.iloc[idx], y_dom[idx]
 
-    importances = clf.feature_importances_
-    total_imp = float(np.sum(importances))
-    active_parents = set(feature_graph.predecessors(target_col))
-    preserved_ratio = (
-        sum(imp for col, imp in zip(X_dom.columns, importances) if col in active_parents) / total_imp
-        if total_imp > 0 else 0.0
+    X_tr, X_val, y_tr, y_val = train_test_split(
+        X_sub, y_sub, test_size=0.25, stratify=y_sub, random_state=42
     )
 
-    separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 2
-    desired_eff_samples = 60.0 + 80000.0 * separability * (preserved_ratio ** 2)
+    clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
+    clf.fit(X_tr, y_tr)
+    auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
+
+    # Κλιμάκωση μάζας: ψηλά μόνο όταν οι ενεργοί γονείς εξηγούν καθαρά το shift
+    separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
+    desired_eff_samples = 60.0 + 24000.0 * separability
     wsyn = float(np.clip(desired_eff_samples / max(len(synthetic_df), 1), 0.001, 1.0))
 
     weights = np.concatenate([
         np.ones(len(source_df), dtype=np.float64),
         np.full(len(synthetic_df), wsyn, dtype=np.float64)
     ])
-    return weights, wsyn, auc, preserved_ratio
+    return weights, wsyn, auc, active_ratio
 
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))
