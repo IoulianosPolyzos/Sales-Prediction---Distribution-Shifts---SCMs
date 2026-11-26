@@ -309,7 +309,9 @@ synthetic_dataset = generate_synthetic_data(
     target_col='unit_sales',
     clip_cols=clip_cols
 )
-sales_parents = sorted(list(feature_graph.predecessors('unit_sales')))
+from dowhy.graph import get_ordered_predecessors
+
+sales_parents = get_ordered_predecessors(scm.graph, 'unit_sales')
 sales_mech = scm.causal_mechanism('unit_sales')
 X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
 clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
@@ -369,9 +371,11 @@ print(results_df)
 
 print(f"✓ Synthetic Dataset Shape: {synthetic_dataset.shape}")
 
+real_train_df = pd.concat([source_df, adaptation_df], ignore_index=True)
+
 # 2. Hybrid Data Construction via Utility
 hybrid_dataset = create_hybrid_dataset(
-    source_df=source_df,
+    source_df=real_train_df,
     synthetic_dataset=synthetic_dataset,
     original_df=df,
     classifier_nodes=classifier_nodes,

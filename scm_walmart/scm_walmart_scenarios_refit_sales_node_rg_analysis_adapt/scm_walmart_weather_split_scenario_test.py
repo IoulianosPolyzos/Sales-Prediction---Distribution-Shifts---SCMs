@@ -389,16 +389,16 @@ print("\nFirst 10 predictions:")
 print(results_df)
 # %%
 
+real_train_df = pd.concat([source_df, adaptation_df], ignore_index=True)
 
 # 2. Hybrid Data Construction via Utility
 hybrid_dataset = create_hybrid_dataset(
-    source_df=source_df,
+    source_df=real_train_df,
     synthetic_dataset=synthetic_dataset,
     original_df=df,
     classifier_nodes=classifier_nodes,
     target_col='Weekly_Sales'
 )
-
 
 
 X_hybrid = hybrid_dataset.drop(columns=['Weekly_Sales'])

@@ -298,7 +298,9 @@ synthetic_dataset = generate_synthetic_data(
     target_col='unit_sales',
     clip_cols=clip_cols
 )
-sales_parents = sorted(list(feature_graph.predecessors('unit_sales')))
+from dowhy.graph import get_ordered_predecessors
+
+sales_parents = get_ordered_predecessors(scm.graph, 'unit_sales')
 sales_mech = scm.causal_mechanism('unit_sales')
 X_syn_parents = synthetic_dataset[sales_parents].to_numpy()
 clean_sales = sales_mech.prediction_model.predict(X_syn_parents).flatten()
