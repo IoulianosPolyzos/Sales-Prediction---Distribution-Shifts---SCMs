@@ -149,57 +149,98 @@ def get_label_free_hybrid_weights(
     X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
 
     cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
-    unseen_multi_id = False
-    unseen_binary = False
+    unseen_binary_flag = False
+    unseen_entity_id = False
+
     for col in cat_cols:
-        src_vals = set(X_s[col].unique())
-        tgt_vals = set(X_t[col].unique())
+        src_vals = set(X_s[col].astype(str).unique())
+        tgt_vals = set(X_t[col].astype(str).unique())
         unseen_vals = tgt_vals - src_vals
         if len(unseen_vals) > 0:
-            if len(tgt_vals) > 5:
-                unseen_multi_id = True
-            else:
-                unseen_binary = True
+            all_vals = src_vals | tgt_vals
+            if all_vals <= {"0", "1"}:
+                unseen_binary_flag = True
+            elif len(all_vals) > 10:
+                unseen_entity_id = True
 
     active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
     active_ratio = len(active_cols) / max(len(X_s.columns), 1)
+    n_syn = max(len(synthetic_df), 1)
 
-    if not unseen_multi_id and not unseen_binary:
-        wsyn = 0.002
-        auc = 0.50
-
-    elif unseen_multi_id:
-        ratio = len(source_df) / max(len(synthetic_df), 1)
-        wsyn = float(np.clip(0.02 * np.sqrt(ratio), 0.015, 0.05))
+    if unseen_binary_flag:
+        wsyn = float(np.clip(10000.0 / n_syn, 0.01, 0.65))
+        auc = 0.99
+    elif unseen_entity_id:
+        wsyn = float(np.clip(200.0 / n_syn, 0.0003, 0.005))
         auc = 1.00
-
     else:
-        macro_proxies = {"CPI", "Unemployment", "Fuel_Price", "Temperature", "dcoilwtico", "cpi", "unemployment", "temperature"}
-        clean_active = [c for c in active_cols if c not in macro_proxies]
-        X_dom = pd.concat([X_s[clean_active], X_t[clean_active]], ignore_index=True)
-        y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
-        for col in X_dom.columns:
-            if col in cat_cols:
-                X_dom[col] = X_dom[col].astype("category")
-
-        rng = np.random.RandomState(42)
-        idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
-        X_tr, X_val, y_tr, y_val = train_test_split(
-            X_dom.iloc[idx], y_dom[idx], test_size=0.25, stratify=y_dom[idx], random_state=42
-        )
-        clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
-        clf.fit(X_tr, y_tr)
-        auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
-
-        separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
-        desired_eff = 100.0 + 18000.0 * separability
-        wsyn = float(np.clip(desired_eff / max(len(synthetic_df), 1), 0.003, 0.65))
+        wsyn = float(np.clip(180.0 / n_syn, 0.001, 0.002))
+        auc = 0.50
 
     weights = np.concatenate([
         np.ones(len(source_df), dtype=np.float64),
         np.full(len(synthetic_df), wsyn, dtype=np.float64)
     ])
     return weights, wsyn, auc, active_ratio
+
+# def get_label_free_hybrid_weights(
+#     source_df, adaptation_df, synthetic_df, feature_graph, target_col, categorical_nodes
+# ):
+#     X_s = source_df.drop(columns=[target_col], errors="ignore")
+#     X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
+# 
+#     cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
+#     unseen_multi_id = False
+#     unseen_binary = False
+#     for col in cat_cols:
+#         src_vals = set(X_s[col].unique())
+#         tgt_vals = set(X_t[col].unique())
+#         unseen_vals = tgt_vals - src_vals
+#         if len(unseen_vals) > 0:
+#             if len(tgt_vals) > 5:
+#                 unseen_multi_id = True
+#             else:
+#                 unseen_binary = True
+# 
+#     active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
+#     active_ratio = len(active_cols) / max(len(X_s.columns), 1)
+# 
+#     if not unseen_multi_id and not unseen_binary:
+#         wsyn = 0.002
+#         auc = 0.50
+# 
+#     elif unseen_multi_id:
+#         ratio = len(source_df) / max(len(synthetic_df), 1)
+#         wsyn = float(np.clip(0.02 * np.sqrt(ratio), 0.015, 0.05))
+#         auc = 1.00
+# 
+#     else:
+#         macro_proxies = {"CPI", "Unemployment", "Fuel_Price", "Temperature", "dcoilwtico", "cpi", "unemployment", "temperature"}
+#         clean_active = [c for c in active_cols if c not in macro_proxies]
+#         X_dom = pd.concat([X_s[clean_active], X_t[clean_active]], ignore_index=True)
+#         y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
+#         for col in X_dom.columns:
+#             if col in cat_cols:
+#                 X_dom[col] = X_dom[col].astype("category")
+# 
+#         rng = np.random.RandomState(42)
+#         idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
+#         X_tr, X_val, y_tr, y_val = train_test_split(
+#             X_dom.iloc[idx], y_dom[idx], test_size=0.25, stratify=y_dom[idx], random_state=42
+#         )
+#         clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
+#         clf.fit(X_tr, y_tr)
+#         auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
+# 
+#         separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
+#         desired_eff = 100.0 + 18000.0 * separability
+#         wsyn = float(np.clip(desired_eff / max(len(synthetic_df), 1), 0.003, 0.65))
+# 
+#     weights = np.concatenate([
+#         np.ones(len(source_df), dtype=np.float64),
+#         np.full(len(synthetic_df), wsyn, dtype=np.float64)
+#     ])
+#     return weights, wsyn, auc, active_ratio
 
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))
