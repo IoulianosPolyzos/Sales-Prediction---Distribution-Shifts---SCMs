@@ -138,6 +138,35 @@ def get_size_normalized_weights(
     return weights, wsyn
 
 
+from sklearn.metrics import roc_auc_score
+from lightgbm import LGBMClassifier
+
+def get_label_free_hybrid_weights(source_df, adaptation_df, synthetic_df, target_col, categorical_nodes):
+    X_s = source_df.drop(columns=[target_col])
+    X_t = adaptation_df.drop(columns=[target_col])[X_s.columns]
+
+    X_dom = pd.concat([X_s, X_t], ignore_index=True)
+    y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
+    for col in categorical_nodes:
+        if col in X_dom.columns:
+            X_dom[col] = X_dom[col].astype("category")
+
+    idx = np.random.RandomState(42).choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
+    clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
+    clf.fit(X_dom.iloc[idx], y_dom[idx])
+    auc = roc_auc_score(y_dom[idx], clf.predict_proba(X_dom.iloc[idx])[:, 1])
+
+    separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 3
+    desired_eff_samples = 200.0 + 22000.0 * separability
+    wsyn = float(np.clip(desired_eff_samples / max(len(synthetic_df), 1), 0.001, 1.0))
+
+    weights = np.concatenate([
+        np.ones(len(source_df), dtype=np.float64),
+        np.full(len(synthetic_df), wsyn, dtype=np.float64)
+    ])
+    return weights, wsyn, auc
+
+
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))
     sales_mechanism = model_scm.causal_mechanism(target_col)
