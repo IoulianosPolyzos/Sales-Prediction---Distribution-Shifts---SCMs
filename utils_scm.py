@@ -121,8 +121,14 @@ def print_target_stats(df, target_col, title):
     print(f"  Max:  {df[target_col].max():.4f}")
     print(f"  % negative: {(df[target_col] < 0).mean() * 100:.2f}%")
 
-def get_size_normalized_weights(n_source: int,n_synthetic: int,alpha: float = 0.01,max_w: float = 1.0):
-    wsyn = alpha * (n_source / max(n_synthetic, 1))
+def get_size_normalized_weights(
+    n_source: int,
+    n_synthetic: int,
+    base_weight: float = 0.001,
+    max_w: float = 0.05
+):
+    ratio = n_source / max(n_synthetic, 1)
+    wsyn = base_weight * float(np.sqrt(ratio))
     wsyn = float(np.clip(wsyn, 1e-5, max_w))
 
     weights = np.concatenate([

@@ -36,7 +36,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis, save_checkpoint, load_checkpoint
+    run_whyshift_region_analysis, save_checkpoint, load_checkpoint, get_size_normalized_weights
 )
 
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
@@ -213,7 +213,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_weather"
 STAGE_NAME = "weather_adapted"
-USE_CHECKPOINT = False
+USE_CHECKPOINT = True
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
@@ -392,10 +392,12 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights = np.concatenate([
-    np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.65)
-])
+weights, wsyn = get_size_normalized_weights(
+    n_source=len(source_df),
+    n_synthetic=len(synthetic_dataset),
+    alpha=0.01
+)
+print(f"N_src: {len(source_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}") #0.65
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
