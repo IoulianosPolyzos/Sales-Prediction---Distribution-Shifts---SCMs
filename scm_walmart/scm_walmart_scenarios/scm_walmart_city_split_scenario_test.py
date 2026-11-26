@@ -161,8 +161,9 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
 # Surgical Removal for City Shift: enforce mediated pathways
-if feature_graph.has_edge('city', 'Weekly_Sales'):
-    feature_graph.remove_edge('city', 'Weekly_Sales')
+for edge in [('city', 'Weekly_Sales'), ('Store', 'Weekly_Sales')]:
+    if feature_graph.has_edge(*edge):
+        feature_graph.remove_edge(*edge)
 
 # Identify causal descendants impacted by the intervention
 affected_groups = get_all_descendants(macro_graph, "City")
@@ -213,7 +214,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_city"
 STAGE_NAME = "city_adapted"
-USE_CHECKPOINT = True
+USE_CHECKPOINT = False
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
@@ -272,12 +273,29 @@ num_synthetic_samples = len(target_df)
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 aligned_city = sampled_target['city'].values
+aligned_store = sampled_target['Store'].values
+aligned_type = sampled_target['Type'].values
+aligned_size = sampled_target['Size'].values
+aligned_dept = sampled_target['Dept'].values
 
 iter_city = itertools.cycle(aligned_city)
+iter_store = itertools.cycle(aligned_store)
+iter_type = itertools.cycle(aligned_type)
+iter_size = itertools.cycle(aligned_size)
+iter_dept = itertools.cycle(aligned_dept)
 
 def int_city(x): return next(iter_city)
+def int_store(x): return next(iter_store)
+def int_type(x): return next(iter_type)
+def int_size(x): return next(iter_size)
+def int_dept(x): return next(iter_dept)
+
 interventions_dict = {
-    'city': int_city
+    'city': int_city,
+    'Store': int_store,
+    'Type': int_type,
+    'Size': int_size,
+    'Dept': int_dept,
 }
 
 # 1. Synthetic Data Generation via Utility
@@ -396,7 +414,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.005)#0.0005 -> mae 13411.91 rmse -> 24151.41 mape -> 1.68, 00003 13432
+    np.full(len(synthetic_dataset), 0.05)#0.0005 -> mae 13411.91 rmse -> 24151.41 mape -> 1.68, 00003 13432
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
