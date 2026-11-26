@@ -242,17 +242,18 @@ def get_mixed_setting_hybrid_weights(
     target_col,
     ml_model_syn=None
 ):
-
     n_train = len(train_df)
     n_src = len(source_domain_train)
     n_tgt = max(len(target_domain_train), 1)
     n_syn = max(len(synthetic_df), 1)
 
+    syn_feature_cols = [c for c in synthetic_df.columns if c != target_col]
+
     fidelity = 0.5
     if ml_model_syn is not None and target_col in target_domain_train.columns:
-        X_t_eval = target_domain_train.drop(columns=[target_col]).copy()
-        for col in X_t_eval.columns:
-            if col in synthetic_df.columns and isinstance(synthetic_df[col].dtype, pd.CategoricalDtype):
+        X_t_eval = target_domain_train[syn_feature_cols].copy()
+        for col in syn_feature_cols:
+            if isinstance(synthetic_df[col].dtype, pd.CategoricalDtype):
                 X_t_eval[col] = pd.Categorical(
                     X_t_eval[col].astype(str),
                     categories=synthetic_df[col].cat.categories
@@ -263,13 +264,14 @@ def get_mixed_setting_hybrid_weights(
         scale = float(np.mean(np.abs(y_t))) + 1e-8
         nmae = float(np.mean(np.abs(y_t - y_pred_t))) / scale
         bias_err = abs(float(np.mean(y_pred_t)) - float(np.mean(y_t))) / scale
-        fidelity = float(np.exp(-1.5 * (nmae + bias_err)))
+        fidelity = float(np.exp(-2.5 * (nmae + 1.5 * bias_err)))
+
 
     imbalance_ratio = min(n_src / n_tgt, 200.0) / 200.0
-    aug_multiplier = 0.15 + 2.35 * imbalance_ratio
+    aug_multiplier = 0.03 + 0.85 * imbalance_ratio
     desired_syn_mass = aug_multiplier * n_tgt * (fidelity ** 2)
 
-    wsyn = float(np.clip(desired_syn_mass / n_syn, 0.001, 0.50))
+    wsyn = float(np.clip(desired_syn_mass / n_syn, 0.0005, 0.06))
 
     weights = np.concatenate([
         np.ones(n_train, dtype=np.float64),
