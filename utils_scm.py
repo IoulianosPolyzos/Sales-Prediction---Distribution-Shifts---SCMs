@@ -194,17 +194,19 @@ def get_label_aware_hybrid_weights(
     ml_model_syn=None
 ):
     syn_feature_cols = [c for c in synthetic_df.columns if c != target_col]
-    cat_cols = [c for c in syn_feature_cols if c in categorical_nodes or synthetic_df[c].dtype == "object"]
-
 
     fidelity = 0.5
     if ml_model_syn is not None and target_col in adaptation_df.columns:
         X_adapt_eval = adaptation_df[syn_feature_cols].copy()
-        for col in cat_cols:
-            X_adapt_eval[col] = pd.Categorical(
-                X_adapt_eval[col].astype(str),
-                categories=synthetic_df[col].astype("category").cat.categories
-            )
+        for col in syn_feature_cols:
+            if isinstance(synthetic_df[col].dtype, pd.CategoricalDtype):
+                X_adapt_eval[col] = pd.Categorical(
+                    X_adapt_eval[col].astype(str),
+                    categories=synthetic_df[col].cat.categories
+                )
+            elif col in categorical_nodes or synthetic_df[col].dtype == "object":
+                X_adapt_eval[col] = X_adapt_eval[col].astype("category")
+
         y_adapt = adaptation_df[target_col].to_numpy(dtype=float)
         y_pred_adapt = ml_model_syn.predict(X_adapt_eval)
 
@@ -220,7 +222,6 @@ def get_label_aware_hybrid_weights(
     active_cols = [c for c in syn_feature_cols if c in feature_graph.predecessors(target_col)]
     active_ratio = len(active_cols) / max(len(syn_feature_cols), 1)
 
-
     imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
     w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
 
@@ -233,7 +234,6 @@ def get_label_aware_hybrid_weights(
         np.full(n_syn, wsyn, dtype=np.float64)
     ])
     return weights, wsyn, fidelity, active_ratio
-
 def get_mixed_setting_hybrid_weights(
     train_df,
     source_domain_train,
