@@ -247,7 +247,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_season"
 STAGE_NAME = "season_adapted"
-USE_CHECKPOINT = True
+USE_CHECKPOINT = False
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
