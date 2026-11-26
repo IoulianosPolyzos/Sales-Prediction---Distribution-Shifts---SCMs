@@ -143,12 +143,12 @@ from lightgbm import LGBMClassifier
 
 def get_label_free_hybrid_weights(source_df, adaptation_df, synthetic_df, target_col, categorical_nodes):
     X_s = source_df.drop(columns=[target_col])
-    X_t = adaptation_df.drop(columns=[target_col])[X_s.columns]
+    X_t = adaptation_df.drop(columns=[target_col], errors='ignore')
 
     X_dom = pd.concat([X_s, X_t], ignore_index=True)
     y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
-    for col in categorical_nodes:
-        if col in X_dom.columns:
+    for col in X_dom.columns:
+        if col in categorical_nodes or X_dom[col].dtype == "object":
             X_dom[col] = X_dom[col].astype("category")
 
     idx = np.random.RandomState(42).choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
