@@ -457,7 +457,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 weights, wsyn = get_size_normalized_weights(
     n_source=len(source_df),
     n_synthetic=len(synthetic_dataset),
-    alpha=0.01
+    base_weight=0.001
 )
 print(f"N_src: {len(source_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}") #0.003
 
