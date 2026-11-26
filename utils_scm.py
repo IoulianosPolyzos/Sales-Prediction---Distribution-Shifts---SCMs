@@ -102,25 +102,11 @@ def setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lg
             scm.set_causal_mechanism(
                 node, gcm.ClassifierFCM(gcm.ml.SklearnClassificationModel(wrapper))
             )
-        # else:
-        #     wrapper = LGBMRegressorWrapper(
-        #         parents=parents,
-        #         cat_features_list=categorical_nodes,
-        #         lgb_params=lgb_params
-        #     )
-        #     scm.set_causal_mechanism(
-        #         node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(wrapper))
-        #     )
         else:
-            node_lgb_params = (
-                {**lgb_params, "linear_tree": True, "linear_lambda": 10.0}
-                if node == "Weekly_Sales"
-                else lgb_params
-            )
             wrapper = LGBMRegressorWrapper(
                 parents=parents,
                 cat_features_list=categorical_nodes,
-                lgb_params=node_lgb_params
+                lgb_params=lgb_params
             )
             scm.set_causal_mechanism(
                 node, gcm.AdditiveNoiseModel(gcm.ml.SklearnRegressionModel(wrapper))
