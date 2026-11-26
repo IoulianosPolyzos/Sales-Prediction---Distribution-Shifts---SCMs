@@ -465,15 +465,15 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights, wsyn, auc = get_label_free_hybrid_weights(
+weights, wsyn, auc, preserved_ratio = get_label_free_hybrid_weights(
     source_df=source_df,
     adaptation_df=adaptation_df,
     synthetic_df=synthetic_dataset,
+    feature_graph=feature_graph,
     target_col='Weekly_Sales',
     categorical_nodes=categorical_nodes
 )
-print(f"Domain AUC: {auc:.4f} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}")
-
+print(f"Domain AUC: {auc:.4f} | Preserved Shift: {preserved_ratio:.3f} | wsyn: {wsyn:.5f}")
 ml_model_hbr.fit(
     X_hybrid,
     y_hybrid,
