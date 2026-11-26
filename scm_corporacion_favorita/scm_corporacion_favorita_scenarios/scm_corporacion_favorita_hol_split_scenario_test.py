@@ -162,17 +162,17 @@ feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.column
 
 # Surgical Removal for Holiday Shift
 edges_to_remove = [
-    ('Month_sin', 'Weekly_Sales'),
-    ('Month_cos', 'Weekly_Sales'),
-    ('WeekOfYear_sin', 'Weekly_Sales'),
-    ('WeekOfYear_cos', 'Weekly_Sales'),
-    ('Year_Progress', 'Weekly_Sales'),
-    ('Month_Progress', 'Weekly_Sales'),
-    ('IsHoliday', 'Weekly_Sales'),
-    ('is_near_holiday', 'Weekly_Sales'),
-    ('holiday_proximity', 'Weekly_Sales'),
-    ('holiday_weight', 'Weekly_Sales'),
-    ('Is_Christmas_Season', 'Weekly_Sales'),
+    ('Month_sin', 'unit_sales'),
+    ('Month_cos', 'unit_sales'),
+    ('WeekOfYear_sin', 'unit_sales'),
+    ('WeekOfYear_cos', 'unit_sales'),
+    ('Year_Progress', 'unit_sales'),
+    ('Month_Progress', 'unit_sales'),
+    ('IsHoliday', 'unit_sales'),
+    ('is_near_holiday', 'unit_sales'),
+    ('holiday_proximity', 'unit_sales'),
+    ('holiday_weight', 'unit_sales'),
+    ('Is_Christmas_Season', 'unit_sales'),
 ]
 
 for src, tgt in edges_to_remove:
@@ -380,7 +380,7 @@ weights, wsyn, auc, preserved_ratio = get_label_free_hybrid_weights(
     adaptation_df=adaptation_df,
     synthetic_df=synthetic_dataset,
     feature_graph=feature_graph,
-    target_col='Weekly_Sales',
+    target_col='unit_sales',
     categorical_nodes=categorical_nodes
 )
 print(f"Domain AUC: {auc:.4f} | Preserved Shift: {preserved_ratio:.3f} | wsyn: {wsyn:.5f}")

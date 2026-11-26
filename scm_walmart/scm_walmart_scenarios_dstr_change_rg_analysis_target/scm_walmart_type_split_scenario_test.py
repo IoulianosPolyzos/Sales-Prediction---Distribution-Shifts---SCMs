@@ -399,6 +399,7 @@ weights, wsyn, fidelity = get_mixed_setting_hybrid_weights(
     target_col='Weekly_Sales',
     ml_model_syn=ml_model_syn
 )
+print(f"SCM Fidelity: {fidelity:.4f} | N_train: {len(train_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}")
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")

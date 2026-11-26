@@ -329,7 +329,7 @@ weights, wsyn, fidelity, preserved_ratio = get_label_aware_hybrid_weights(
     adaptation_df=adaptation_df,
     synthetic_df=synthetic_dataset,
     feature_graph=feature_graph,
-    target_col='Weekly_Sales',
+    target_col='unit_sales',
     categorical_nodes=categorical_nodes,
     ml_model_syn=ml_model_syn
 )

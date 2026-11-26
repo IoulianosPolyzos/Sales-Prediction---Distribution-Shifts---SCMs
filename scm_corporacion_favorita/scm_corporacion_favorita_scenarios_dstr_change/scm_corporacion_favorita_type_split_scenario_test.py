@@ -318,7 +318,7 @@ weights, wsyn, fidelity = get_mixed_setting_hybrid_weights(
     source_domain_train=source_domain_train,
     target_domain_train=target_domain_train,
     synthetic_df=synthetic_dataset,
-    target_col='Weekly_Sales',
+    target_col='unit_sales',
     ml_model_syn=ml_model_syn
 )
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)

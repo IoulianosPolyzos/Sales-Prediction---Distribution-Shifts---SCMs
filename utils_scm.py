@@ -193,32 +193,18 @@ def get_label_aware_hybrid_weights(
     categorical_nodes,
     ml_model_syn=None
 ):
-    X_s = source_df.drop(columns=[target_col], errors="ignore")
-    X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
+    syn_feature_cols = [c for c in synthetic_df.columns if c != target_col]
+    cat_cols = [c for c in syn_feature_cols if c in categorical_nodes or synthetic_df[c].dtype == "object"]
 
-    cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
-    unseen_binary_flag = False
-    unseen_entity_id = False
-
-    for col in cat_cols:
-        src_vals = set(X_s[col].astype(str).unique())
-        tgt_vals = set(X_t[col].astype(str).unique())
-        if len(tgt_vals - src_vals) > 0:
-            all_vals = src_vals | tgt_vals
-            if all_vals <= {"0", "1"}:
-                unseen_binary_flag = True
-            elif len(all_vals) > 10:
-                unseen_entity_id = True
 
     fidelity = 0.5
     if ml_model_syn is not None and target_col in adaptation_df.columns:
-        X_adapt_eval = X_t.copy()
+        X_adapt_eval = adaptation_df[syn_feature_cols].copy()
         for col in cat_cols:
-            if col in X_adapt_eval.columns:
-                X_adapt_eval[col] = pd.Categorical(
-                    X_adapt_eval[col].astype(str),
-                    categories=synthetic_df[col].astype("category").cat.categories
-                )
+            X_adapt_eval[col] = pd.Categorical(
+                X_adapt_eval[col].astype(str),
+                categories=synthetic_df[col].astype("category").cat.categories
+            )
         y_adapt = adaptation_df[target_col].to_numpy(dtype=float)
         y_pred_adapt = ml_model_syn.predict(X_adapt_eval)
 
@@ -227,27 +213,26 @@ def get_label_aware_hybrid_weights(
         bias_err = abs(float(np.mean(y_pred_adapt)) - float(np.mean(y_adapt))) / scale
         fidelity = float(np.exp(-1.5 * (nmae + bias_err)))
 
-    n_adapt = len(adaptation_df)
+    n_src = len(source_df)
+    n_adapt = max(len(adaptation_df), 1)
     n_syn = max(len(synthetic_df), 1)
-    active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
-    active_ratio = len(active_cols) / max(len(X_s.columns), 1)
 
-    if unseen_binary_flag:
-        eff_samples = min(14000.0, float(n_adapt)) * fidelity
-        wsyn = float(np.clip(eff_samples / n_syn, 0.005, 0.65))
-    elif unseen_entity_id:
-        eff_samples = min(400.0, 0.25 * n_adapt) * fidelity
-        wsyn = float(np.clip(eff_samples / n_syn, 0.0003, 0.005))
-    else:
-        eff_samples = min(250.0, 0.25 * n_adapt) * fidelity
-        wsyn = float(np.clip(eff_samples / n_syn, 0.0005, 0.002))
+    active_cols = [c for c in syn_feature_cols if c in feature_graph.predecessors(target_col)]
+    active_ratio = len(active_cols) / max(len(syn_feature_cols), 1)
+
+
+    imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
+    w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
+
+    target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
+    wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.50))
 
     weights = np.concatenate([
-        np.ones(len(source_df), dtype=np.float64),
-        np.full(len(synthetic_df), wsyn, dtype=np.float64)
+        np.ones(n_src, dtype=np.float64),
+        np.full(n_adapt, w_adapt, dtype=np.float64),
+        np.full(n_syn, wsyn, dtype=np.float64)
     ])
     return weights, wsyn, fidelity, active_ratio
-
 
 def get_mixed_setting_hybrid_weights(
     train_df,

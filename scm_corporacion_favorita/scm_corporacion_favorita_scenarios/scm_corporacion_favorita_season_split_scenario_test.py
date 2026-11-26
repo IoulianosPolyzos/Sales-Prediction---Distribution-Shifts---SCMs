@@ -387,7 +387,7 @@ weights, wsyn, auc, preserved_ratio = get_label_free_hybrid_weights(
     adaptation_df=adaptation_df,
     synthetic_df=synthetic_dataset,
     feature_graph=feature_graph,
-    target_col='Weekly_Sales',
+    target_col='unit_sales',
     categorical_nodes=categorical_nodes
 )
 print(f"Domain AUC: {auc:.4f} | Preserved Shift: {preserved_ratio:.3f} | wsyn: {wsyn:.5f}")
