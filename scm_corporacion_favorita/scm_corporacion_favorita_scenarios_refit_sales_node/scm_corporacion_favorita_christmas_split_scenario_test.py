@@ -126,6 +126,7 @@ try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError:
                 pass
 
@@ -137,12 +138,14 @@ try:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     categorical_nodes = ["city", "state", "store_type", "family", "weather_condition", "store_nbr", "cluster", "class"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -158,13 +161,17 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
 edges_to_remove = [
-    ('Month_sin', 'unit_sales'),
-    ('Month_cos', 'unit_sales'),
-    ('WeekOfYear_sin', 'unit_sales'),
-    ('WeekOfYear_cos', 'unit_sales'),
-    ('Is_Christmas_Season', 'unit_sales'),
-    ('Year_Progress', 'unit_sales'),
-    ('Month_Progress', 'unit_sales')
+    ('Month_sin', 'Weekly_Sales'),
+    ('Month_cos', 'Weekly_Sales'),
+    ('WeekOfYear_sin', 'Weekly_Sales'),
+    ('WeekOfYear_cos', 'Weekly_Sales'),
+    ('Year_Progress', 'Weekly_Sales'),
+    ('Month_Progress', 'Weekly_Sales'),
+    ('IsHoliday', 'Weekly_Sales'),
+    ('is_near_holiday', 'Weekly_Sales'),
+    ('holiday_proximity', 'Weekly_Sales'),
+    ('holiday_weight', 'Weekly_Sales'),
+    ('Is_Christmas_Season', 'Weekly_Sales'),
 ]
 
 for src, tgt in edges_to_remove:
@@ -363,7 +370,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.015)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)

@@ -171,10 +171,9 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 # Surgical Removal: Prevent direct causal shortcut for strict mechanistic modeling
 edges_to_remove = [
-    ('Store', 'Weekly_Sales'),
-    ('Type', 'Weekly_Sales'),
-    ('city', 'Weekly_Sales')
+    ('Store', 'Weekly_Sales')
 ]
+
 
 for src, tgt in edges_to_remove:
     if feature_graph.has_edge(src, tgt):

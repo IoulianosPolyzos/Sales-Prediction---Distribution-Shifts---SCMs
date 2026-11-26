@@ -126,6 +126,7 @@ try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError:
                 pass
 
@@ -137,12 +138,14 @@ try:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     categorical_nodes = ["city", "state", "store_type", "family", "weather_condition", "store_nbr", "cluster", "class"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -150,7 +153,6 @@ try:
 except Exception as e:
     print(f"ERROR: Preprocessing failed: {e}")
     raise
-
 # %%
 print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
@@ -220,22 +222,30 @@ num_synthetic_samples = min(1000000, len(target_df))
 sampled_target = adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 aligned_city = sampled_target['city'].values
-
 aligned_state = sampled_target['state'].values
+aligned_store = sampled_target['store_nbr'].values
+aligned_store_type = sampled_target['store_type'].values
+aligned_cluster = sampled_target['cluster'].values
 
 iter_city = itertools.cycle(aligned_city)
-
 iter_state = itertools.cycle(aligned_state)
+iter_store = itertools.cycle(aligned_store)
+iter_store_type = itertools.cycle(aligned_store_type)
+iter_cluster = itertools.cycle(aligned_cluster)
 
 def int_city(x): return next(iter_city)
-
 def int_state(x): return next(iter_state)
+def int_store(x): return next(iter_store)
+def int_store_type(x): return next(iter_store_type)
+def int_cluster(x): return next(iter_cluster)
 
 interventions_dict = {
     'state': int_state,
-    'city': int_city
+    'city': int_city,
+    'store_nbr': int_store,
+    'store_type': int_store_type,
+    'cluster': int_cluster,
 }
-
 
 
 # 1. Synthetic Data Generation via Utility
@@ -330,7 +340,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.20)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
