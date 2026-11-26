@@ -121,6 +121,16 @@ def print_target_stats(df, target_col, title):
     print(f"  Max:  {df[target_col].max():.4f}")
     print(f"  % negative: {(df[target_col] < 0).mean() * 100:.2f}%")
 
+def get_size_normalized_weights(n_source: int,n_synthetic: int,alpha: float = 0.01,max_w: float = 1.0):
+    wsyn = alpha * (n_source / max(n_synthetic, 1))
+    wsyn = float(np.clip(wsyn, 1e-5, max_w))
+
+    weights = np.concatenate([
+        np.ones(n_source, dtype=np.float64),
+        np.full(n_synthetic, wsyn, dtype=np.float64)
+    ])
+    return weights, wsyn
+
 
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))
