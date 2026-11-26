@@ -161,9 +161,15 @@ print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 feature_graph, causal_groups, macro_graph = build_feature_graph(source_df.columns)
 
 # Surgical Removal for City Shift: enforce mediated pathways
-for edge in [('city', 'Weekly_Sales'), ('Store', 'Weekly_Sales')]:
-    if feature_graph.has_edge(*edge):
-        feature_graph.remove_edge(*edge)
+edges_to_remove = [
+    ('city', 'Weekly_Sales'),
+    ('Store', 'Weekly_Sales'),
+    ('Type', 'Weekly_Sales'),
+]
+
+for src, tgt in edges_to_remove:
+    if feature_graph.has_edge(src, tgt):
+        feature_graph.remove_edge(src, tgt)
 
 # Identify causal descendants impacted by the intervention
 affected_groups = get_all_descendants(macro_graph, "City")
