@@ -219,7 +219,7 @@ print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_g
 
 CHECKPOINT_DIR = project_root / "checkpoints" / "walmart_store"
 STAGE_NAME = "store_adapted"
-USE_CHECKPOINT = True
+USE_CHECKPOINT = False
 
 scm_files = sorted(CHECKPOINT_DIR.glob(f"scm_{STAGE_NAME}_*.pkl"))
 meta_files = sorted(CHECKPOINT_DIR.glob(f"metadata_{STAGE_NAME}_*.pkl"))
@@ -323,6 +323,7 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+
 real = set(map(tuple, df[['Store','Dept']].astype(str).values))
 syn = synthetic_dataset[['Store','Dept']].astype(str).apply(tuple, axis=1)
 print("% impossible Store-Dept combos:", (~syn.isin(real)).mean()*100)

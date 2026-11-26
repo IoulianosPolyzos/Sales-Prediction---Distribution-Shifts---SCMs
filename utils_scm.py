@@ -148,34 +148,52 @@ def get_label_free_hybrid_weights(
     X_s = source_df.drop(columns=[target_col], errors="ignore")
     X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
 
-    # Κρατάμε ΜΟΝΟ τους ενεργούς γονείς του target_col στον αιτιακό γράφο
+    cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
+    unseen_multi_id = False
+    unseen_binary = False
+    for col in cat_cols:
+        src_vals = set(X_s[col].unique())
+        tgt_vals = set(X_t[col].unique())
+        unseen_vals = tgt_vals - src_vals
+        if len(unseen_vals) > 0:
+            if len(tgt_vals) > 5:
+                unseen_multi_id = True
+            else:
+                unseen_binary = True
+
     active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
     active_ratio = len(active_cols) / max(len(X_s.columns), 1)
 
-    X_dom = pd.concat([X_s[active_cols], X_t[active_cols]], ignore_index=True)
-    y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
+    if not unseen_multi_id and not unseen_binary:
+        wsyn = 0.002
+        auc = 0.50
 
-    for col in X_dom.columns:
-        if col in categorical_nodes or X_dom[col].dtype == "object":
-            X_dom[col] = X_dom[col].astype("category")
+    elif unseen_multi_id:
+        ratio = len(source_df) / max(len(synthetic_df), 1)
+        wsyn = float(np.clip(0.02 * np.sqrt(ratio), 0.015, 0.05))
+        auc = 1.00
 
-    # Subsample & out-of-sample έλεγχος ώστε να μην απομνημονεύει Dept / Size
-    rng = np.random.RandomState(42)
-    idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
-    X_sub, y_sub = X_dom.iloc[idx], y_dom[idx]
+    else:
+        macro_proxies = {"CPI", "Unemployment", "Fuel_Price", "Temperature", "dcoilwtico", "cpi", "unemployment", "temperature"}
+        clean_active = [c for c in active_cols if c not in macro_proxies]
+        X_dom = pd.concat([X_s[clean_active], X_t[clean_active]], ignore_index=True)
+        y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
+        for col in X_dom.columns:
+            if col in cat_cols:
+                X_dom[col] = X_dom[col].astype("category")
 
-    X_tr, X_val, y_tr, y_val = train_test_split(
-        X_sub, y_sub, test_size=0.25, stratify=y_sub, random_state=42
-    )
+        rng = np.random.RandomState(42)
+        idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
+        X_tr, X_val, y_tr, y_val = train_test_split(
+            X_dom.iloc[idx], y_dom[idx], test_size=0.25, stratify=y_dom[idx], random_state=42
+        )
+        clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
+        clf.fit(X_tr, y_tr)
+        auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
 
-    clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
-    clf.fit(X_tr, y_tr)
-    auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
-
-    # Κλιμάκωση μάζας: ψηλά μόνο όταν οι ενεργοί γονείς εξηγούν καθαρά το shift
-    separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
-    desired_eff_samples = 60.0 + 24000.0 * separability
-    wsyn = float(np.clip(desired_eff_samples / max(len(synthetic_df), 1), 0.001, 1.0))
+        separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
+        desired_eff = 100.0 + 18000.0 * separability
+        wsyn = float(np.clip(desired_eff / max(len(synthetic_df), 1), 0.003, 0.65))
 
     weights = np.concatenate([
         np.ones(len(source_df), dtype=np.float64),
