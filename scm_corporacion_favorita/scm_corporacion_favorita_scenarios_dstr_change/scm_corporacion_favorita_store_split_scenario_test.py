@@ -36,7 +36,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis, get_mixed_setting_hybrid_weights
 )
 
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
@@ -116,7 +116,7 @@ print(f"  - Source instances (Stores 1-40): {len(source_domain_test)}")
 print(f"  - Target instances (Stores 41-54): {len(target_domain_test)}")
 
 # %%
-print("PART 3: PREPROCESSING")
+print("\nPART 3: PREPROCESSING")
 
 try:
     categorical_cols_to_exclude = [
@@ -130,6 +130,9 @@ try:
             try:
                 train_df[col] = pd.to_numeric(train_df[col], errors='raise')
                 test_df[col] = pd.to_numeric(test_df[col], errors='raise')
+                source_domain_train[col] = pd.to_numeric(source_domain_train[col], errors='raise')
+                target_domain_train[col] = pd.to_numeric(target_domain_train[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError:
                 pass
 
@@ -141,13 +144,18 @@ try:
     for col in binary_nodes:
         train_df[col] = train_df[col].astype(int).astype(str)
         test_df[col] = test_df[col].astype(int).astype(str)
+        source_domain_train[col] = source_domain_train[col].astype(int).astype(str)
+        target_domain_train[col] = target_domain_train[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     # Cast nominal categoricals to string representation
     categorical_nodes = ["city", "state", "store_type", "family", "weather_condition", "store_nbr", "cluster", "class"]
     for col in categorical_nodes:
-        if col in train_df.columns:
-            train_df[col] = train_df[col].astype(str)
-            test_df[col] = test_df[col].astype(str)
+        train_df[col] = train_df[col].astype(str)
+        test_df[col] = test_df[col].astype(str)
+        source_domain_train[col] = source_domain_train[col].astype(str)
+        target_domain_train[col] = target_domain_train[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -301,10 +309,14 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
-weights = np.concatenate([
-    np.ones(len(train_df)),
-    np.full(len(synthetic_dataset), 0.05)
-])
+weights, wsyn, fidelity = get_mixed_setting_hybrid_weights(
+    train_df=train_df,
+    source_domain_train=source_domain_train,
+    target_domain_train=target_domain_train,
+    synthetic_df=synthetic_dataset,
+    target_col='Weekly_Sales',
+    ml_model_syn=ml_model_syn
+)
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 

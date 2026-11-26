@@ -41,7 +41,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis, get_label_free_hybrid_weights, get_label_aware_hybrid_weights
 )
 
 
@@ -329,12 +329,22 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights = np.concatenate([
-    np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.65)
-])
-
-ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
+weights, wsyn, fidelity, preserved_ratio = get_label_aware_hybrid_weights(
+    source_df=source_df,
+    adaptation_df=adaptation_df,
+    synthetic_df=synthetic_dataset,
+    feature_graph=feature_graph,
+    target_col='Weekly_Sales',
+    categorical_nodes=categorical_nodes,
+    ml_model_syn=ml_model_syn
+)
+print(f"SCM Fidelity: {fidelity:.4f} | Preserved Shift: {preserved_ratio:.3f} | wsyn: {wsyn:.5f}")
+ml_model_hbr.fit(
+    X_hybrid,
+    y_hybrid,
+    sample_weight=weights,
+    categorical_feature=categorical_nodes
+)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")

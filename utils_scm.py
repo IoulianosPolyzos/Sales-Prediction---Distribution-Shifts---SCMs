@@ -183,64 +183,114 @@ def get_label_free_hybrid_weights(
     ])
     return weights, wsyn, auc, active_ratio
 
-# def get_label_free_hybrid_weights(
-#     source_df, adaptation_df, synthetic_df, feature_graph, target_col, categorical_nodes
-# ):
-#     X_s = source_df.drop(columns=[target_col], errors="ignore")
-#     X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
-# 
-#     cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
-#     unseen_multi_id = False
-#     unseen_binary = False
-#     for col in cat_cols:
-#         src_vals = set(X_s[col].unique())
-#         tgt_vals = set(X_t[col].unique())
-#         unseen_vals = tgt_vals - src_vals
-#         if len(unseen_vals) > 0:
-#             if len(tgt_vals) > 5:
-#                 unseen_multi_id = True
-#             else:
-#                 unseen_binary = True
-# 
-#     active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
-#     active_ratio = len(active_cols) / max(len(X_s.columns), 1)
-# 
-#     if not unseen_multi_id and not unseen_binary:
-#         wsyn = 0.002
-#         auc = 0.50
-# 
-#     elif unseen_multi_id:
-#         ratio = len(source_df) / max(len(synthetic_df), 1)
-#         wsyn = float(np.clip(0.02 * np.sqrt(ratio), 0.015, 0.05))
-#         auc = 1.00
-# 
-#     else:
-#         macro_proxies = {"CPI", "Unemployment", "Fuel_Price", "Temperature", "dcoilwtico", "cpi", "unemployment", "temperature"}
-#         clean_active = [c for c in active_cols if c not in macro_proxies]
-#         X_dom = pd.concat([X_s[clean_active], X_t[clean_active]], ignore_index=True)
-#         y_dom = np.concatenate([np.zeros(len(X_s)), np.ones(len(X_t))])
-#         for col in X_dom.columns:
-#             if col in cat_cols:
-#                 X_dom[col] = X_dom[col].astype("category")
-# 
-#         rng = np.random.RandomState(42)
-#         idx = rng.choice(len(X_dom), size=min(50000, len(X_dom)), replace=False)
-#         X_tr, X_val, y_tr, y_val = train_test_split(
-#             X_dom.iloc[idx], y_dom[idx], test_size=0.25, stratify=y_dom[idx], random_state=42
-#         )
-#         clf = LGBMClassifier(n_estimators=50, max_depth=4, random_state=42, verbose=-1)
-#         clf.fit(X_tr, y_tr)
-#         auc = roc_auc_score(y_val, clf.predict_proba(X_val)[:, 1])
-# 
-#         separability = np.clip((auc - 0.5) * 2.0, 0.0, 1.0) ** 5
-#         desired_eff = 100.0 + 18000.0 * separability
-#         wsyn = float(np.clip(desired_eff / max(len(synthetic_df), 1), 0.003, 0.65))
-# 
-#     weights = np.concatenate([
-#         np.ones(len(source_df), dtype=np.float64),
-#         np.full(len(synthetic_df), wsyn, dtype=np.float64)
-#     ])
-#     return weights, wsyn, auc, active_ratio
+
+def get_label_aware_hybrid_weights(
+    source_df,
+    adaptation_df,
+    synthetic_df,
+    feature_graph,
+    target_col,
+    categorical_nodes,
+    ml_model_syn=None
+):
+    X_s = source_df.drop(columns=[target_col], errors="ignore")
+    X_t = adaptation_df.drop(columns=[target_col], errors="ignore")[X_s.columns]
+
+    cat_cols = [c for c in X_s.columns if c in categorical_nodes or X_s[c].dtype == "object"]
+    unseen_binary_flag = False
+    unseen_entity_id = False
+
+    for col in cat_cols:
+        src_vals = set(X_s[col].astype(str).unique())
+        tgt_vals = set(X_t[col].astype(str).unique())
+        if len(tgt_vals - src_vals) > 0:
+            all_vals = src_vals | tgt_vals
+            if all_vals <= {"0", "1"}:
+                unseen_binary_flag = True
+            elif len(all_vals) > 10:
+                unseen_entity_id = True
+
+    fidelity = 0.5
+    if ml_model_syn is not None and target_col in adaptation_df.columns:
+        X_adapt_eval = X_t.copy()
+        for col in cat_cols:
+            if col in X_adapt_eval.columns:
+                X_adapt_eval[col] = pd.Categorical(
+                    X_adapt_eval[col].astype(str),
+                    categories=synthetic_df[col].astype("category").cat.categories
+                )
+        y_adapt = adaptation_df[target_col].to_numpy(dtype=float)
+        y_pred_adapt = ml_model_syn.predict(X_adapt_eval)
+
+        scale = float(np.mean(np.abs(y_adapt))) + 1e-8
+        nmae = float(np.mean(np.abs(y_adapt - y_pred_adapt))) / scale
+        bias_err = abs(float(np.mean(y_pred_adapt)) - float(np.mean(y_adapt))) / scale
+        fidelity = float(np.exp(-1.5 * (nmae + bias_err)))
+
+    n_adapt = len(adaptation_df)
+    n_syn = max(len(synthetic_df), 1)
+    active_cols = [c for c in X_s.columns if c in feature_graph.predecessors(target_col)]
+    active_ratio = len(active_cols) / max(len(X_s.columns), 1)
+
+    if unseen_binary_flag:
+        eff_samples = min(14000.0, float(n_adapt)) * fidelity
+        wsyn = float(np.clip(eff_samples / n_syn, 0.005, 0.65))
+    elif unseen_entity_id:
+        eff_samples = min(400.0, 0.25 * n_adapt) * fidelity
+        wsyn = float(np.clip(eff_samples / n_syn, 0.0003, 0.005))
+    else:
+        eff_samples = min(250.0, 0.25 * n_adapt) * fidelity
+        wsyn = float(np.clip(eff_samples / n_syn, 0.0005, 0.002))
+
+    weights = np.concatenate([
+        np.ones(len(source_df), dtype=np.float64),
+        np.full(len(synthetic_df), wsyn, dtype=np.float64)
+    ])
+    return weights, wsyn, fidelity, active_ratio
+
+
+def get_mixed_setting_hybrid_weights(
+    train_df,
+    source_domain_train,
+    target_domain_train,
+    synthetic_df,
+    target_col,
+    ml_model_syn=None
+):
+
+    n_train = len(train_df)
+    n_src = len(source_domain_train)
+    n_tgt = max(len(target_domain_train), 1)
+    n_syn = max(len(synthetic_df), 1)
+
+    fidelity = 0.5
+    if ml_model_syn is not None and target_col in target_domain_train.columns:
+        X_t_eval = target_domain_train.drop(columns=[target_col]).copy()
+        for col in X_t_eval.columns:
+            if col in synthetic_df.columns and isinstance(synthetic_df[col].dtype, pd.CategoricalDtype):
+                X_t_eval[col] = pd.Categorical(
+                    X_t_eval[col].astype(str),
+                    categories=synthetic_df[col].cat.categories
+                )
+        y_t = target_domain_train[target_col].to_numpy(dtype=float)
+        y_pred_t = ml_model_syn.predict(X_t_eval)
+
+        scale = float(np.mean(np.abs(y_t))) + 1e-8
+        nmae = float(np.mean(np.abs(y_t - y_pred_t))) / scale
+        bias_err = abs(float(np.mean(y_pred_t)) - float(np.mean(y_t))) / scale
+        fidelity = float(np.exp(-1.5 * (nmae + bias_err)))
+
+    imbalance_ratio = min(n_src / n_tgt, 200.0) / 200.0
+    aug_multiplier = 0.15 + 2.35 * imbalance_ratio
+    desired_syn_mass = aug_multiplier * n_tgt * (fidelity ** 2)
+
+    wsyn = float(np.clip(desired_syn_mass / n_syn, 0.001, 0.50))
+
+    weights = np.concatenate([
+        np.ones(n_train, dtype=np.float64),
+        np.full(n_syn, wsyn, dtype=np.float64)
+    ])
+    return weights, wsyn, fidelity
 
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))

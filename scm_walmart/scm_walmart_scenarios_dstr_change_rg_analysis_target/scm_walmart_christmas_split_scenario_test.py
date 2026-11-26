@@ -47,7 +47,7 @@ from utils_scm import (
     generate_synthetic_data,
     create_hybrid_dataset,
     run_whyshift_region_analysis,
-    extract_high_shift_rules
+    extract_high_shift_rules, get_mixed_setting_hybrid_weights
 )
 from whyshift.region_analysis import shared_reweight
 
@@ -462,10 +462,14 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights = np.concatenate([
-    np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.003)
-])
+weights, wsyn, fidelity = get_mixed_setting_hybrid_weights(
+    train_df=train_df,
+    source_domain_train=source_domain_train,
+    target_domain_train=target_domain_train,
+    synthetic_df=synthetic_dataset,
+    target_col='Weekly_Sales',
+    ml_model_syn=ml_model_syn
+)
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")

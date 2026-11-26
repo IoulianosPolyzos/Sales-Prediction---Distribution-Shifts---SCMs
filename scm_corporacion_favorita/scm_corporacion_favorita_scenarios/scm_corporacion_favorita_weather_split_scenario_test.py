@@ -36,7 +36,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis
+    run_whyshift_region_analysis, get_label_free_hybrid_weights
 )
 
 from scm_corporacion_favorita.scm_favorita_graph_utils import build_feature_graph
@@ -315,10 +315,15 @@ y_hybrid = hybrid_dataset['unit_sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights = np.concatenate([
-    np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.002)
-])
+weights, wsyn, auc, preserved_ratio = get_label_free_hybrid_weights(
+    source_df=source_df,
+    adaptation_df=adaptation_df,
+    synthetic_df=synthetic_dataset,
+    feature_graph=feature_graph,
+    target_col='Weekly_Sales',
+    categorical_nodes=categorical_nodes
+)
+print(f"Domain AUC: {auc:.4f} | Preserved Shift: {preserved_ratio:.3f} | wsyn: {wsyn:.5f}")
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
