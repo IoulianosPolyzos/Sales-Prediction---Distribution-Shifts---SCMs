@@ -118,36 +118,45 @@ print("✓ Domain separation verified: No overlap between Store Numbers")
 
 #%%
 
+# PART 3: FEATURE TRANSFORMATION AND DATA TYPE ENFORCEMENT
+
 print("\nPART 3: PREPROCESSING")
 
-
 try:
+    # Isolate categorical nodes to ensure correct functional mappings in SCM
     categorical_cols_to_exclude = [
         "city", "Type", "weather_condition",
         "Store", "Dept"
     ]
 
+    # Enforce continuous spaces for Additive Noise Models (ANM)
     for col in source_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
                 source_df[col] = pd.to_numeric(source_df[col], errors='raise')
                 adaptation_df[col] = pd.to_numeric(adaptation_df[col], errors='raise')
                 holdout_test_df[col] = pd.to_numeric(holdout_test_df[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 pass
 
-    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
+    # Explicitly string-encode binary covariates to enforce classifier assignment
+    binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season", "Is_Summer", "Is_Month_Start",
+                    "Is_Month_End"]
     for col in binary_nodes:
         source_df[col] = source_df[col].astype(int).astype(str)
         adaptation_df[col] = adaptation_df[col].astype(int).astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(int).astype(str)
-
+        df[col] = df[col].astype(int).astype(str)
+    # Standardize string representations for multi-class categorical features
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         source_df[col] = source_df[col].astype(str)
         adaptation_df[col] = adaptation_df[col].astype(str)
         holdout_test_df[col] = holdout_test_df[col].astype(str)
+        df[col] = df[col].astype(str)
 
+    # Compile all classification targets for graph formulation
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
 
@@ -403,7 +412,7 @@ ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
     np.ones(len(source_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.full(len(synthetic_dataset), 0.03)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
