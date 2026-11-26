@@ -36,7 +36,8 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis, save_checkpoint, load_checkpoint, get_size_normalized_weights
+    run_whyshift_region_analysis, save_checkpoint, load_checkpoint, get_size_normalized_weights,
+    get_label_free_hybrid_weights
 )
 
 from scm_walmart.scm_walmart_graph_utils import build_feature_graph
@@ -392,14 +393,31 @@ y_hybrid = hybrid_dataset['Weekly_Sales']
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
-weights, wsyn = get_size_normalized_weights(
-    n_source=len(source_df),
-    n_synthetic=len(synthetic_dataset),
-    base_weight=0.001
-)
-print(f"N_src: {len(source_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}") #0.65
 
-ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
+weights, wsyn, auc = get_label_free_hybrid_weights(
+    source_df=source_df,
+    adaptation_df=adaptation_df,
+    synthetic_df=synthetic_dataset,
+    target_col='Weekly_Sales',
+    categorical_nodes=categorical_nodes
+)
+print(f"Domain AUC: {auc:.4f} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}")
+
+ml_model_hbr.fit(
+    X_hybrid,
+    y_hybrid,
+    sample_weight=weights,
+    categorical_feature=categorical_nodes
+)
+
+# weights, wsyn = get_size_normalized_weights(
+#     n_source=len(source_df),
+#     n_synthetic=len(synthetic_dataset),
+#     base_weight=0.001
+# )
+# print(f"N_src: {len(source_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}") #0.65
+#
+# ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print(f"\nTRAIN DATA STATS :")
 print(f"  Mean: {source_df['Weekly_Sales'].mean():.4f}")
 print(f"  Std:  {source_df['Weekly_Sales'].std():.4f}")
