@@ -135,16 +135,17 @@ print("✓ No overlap between TRAIN/TEST weather_conditions")
 
 #%%
 
-
 print("\nPART 3: PREPROCESSING")
 
 
 try:
+    # Define categorical columns
     categorical_cols_to_exclude = [
         "city", "Type", "weather_condition",
         "Store", "Dept"
     ]
 
+    # Convert numeric columns
     for col in train_df.columns:
         if col not in categorical_cols_to_exclude:
             try:
@@ -152,22 +153,33 @@ try:
                 test_df[col] = pd.to_numeric(test_df[col], errors='raise')
                 source_domain_train[col] = pd.to_numeric(source_domain_train[col], errors='raise')
                 target_domain_train[col] = pd.to_numeric(target_domain_train[col], errors='raise')
+                source_domain_test[col] = pd.to_numeric(source_domain_test[col], errors='raise')
+                target_domain_test[col] = pd.to_numeric(target_domain_test[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
-                pass
+                print(f"WARNING: Could not convert {col} to numeric: {e}")
 
+    # Binary encoding
     binary_nodes = ["IsHoliday", "is_near_holiday", "Is_Christmas_Season","Is_Summer","Is_Month_Start","Is_Month_End"]
     for col in binary_nodes:
         train_df[col] = train_df[col].astype(int).astype(str)
         test_df[col] = test_df[col].astype(int).astype(str)
         source_domain_train[col] = source_domain_train[col].astype(int).astype(str)
         target_domain_train[col] = target_domain_train[col].astype(int).astype(str)
+        source_domain_test[col] = source_domain_test[col].astype(int).astype(str)
+        target_domain_test[col] = target_domain_test[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
+    # Categorical encoding
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
     for col in categorical_nodes:
         train_df[col] = train_df[col].astype(str)
         test_df[col] = test_df[col].astype(str)
         source_domain_train[col] = source_domain_train[col].astype(str)
         target_domain_train[col] = target_domain_train[col].astype(str)
+        source_domain_test[col] = source_domain_test[col].astype(str)
+        target_domain_test[col] = target_domain_test[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -175,7 +187,6 @@ try:
 except Exception as e:
     print(f"ERROR: Preprocessing failed: {e}")
     raise
-
 #%%
 print("\nPART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
@@ -380,9 +391,10 @@ print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
-    np.ones(len(train_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.ones(len(source_df)),
+    np.full(len(synthetic_dataset), 0.65)
 ])
+
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")

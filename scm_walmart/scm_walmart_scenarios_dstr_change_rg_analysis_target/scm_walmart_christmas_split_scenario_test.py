@@ -158,6 +158,7 @@ try:
                 target_domain_train[col] = pd.to_numeric(target_domain_train[col], errors='raise')
                 source_domain_test[col] = pd.to_numeric(source_domain_test[col], errors='raise')
                 target_domain_test[col] = pd.to_numeric(target_domain_test[col], errors='raise')
+                df[col] = pd.to_numeric(df[col], errors='raise')
             except ValueError as e:
                 print(f"WARNING: Could not convert {col} to numeric: {e}")
 
@@ -170,6 +171,7 @@ try:
         target_domain_train[col] = target_domain_train[col].astype(int).astype(str)
         source_domain_test[col] = source_domain_test[col].astype(int).astype(str)
         target_domain_test[col] = target_domain_test[col].astype(int).astype(str)
+        df[col] = df[col].astype(int).astype(str)
 
     # Categorical encoding
     categorical_nodes = ["Type", "weather_condition", "Store", "Dept", "city"]
@@ -180,6 +182,7 @@ try:
         target_domain_train[col] = target_domain_train[col].astype(str)
         source_domain_test[col] = source_domain_test[col].astype(str)
         target_domain_test[col] = target_domain_test[col].astype(str)
+        df[col] = df[col].astype(str)
 
     classifier_nodes = binary_nodes + categorical_nodes
     print(f"✓ Preprocessing complete (Classifier nodes: {len(classifier_nodes)})")
@@ -460,8 +463,8 @@ print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
 
 weights = np.concatenate([
-    np.ones(len(train_df)),
-    np.full(len(synthetic_dataset), 0.05)
+    np.ones(len(source_df)),
+    np.full(len(synthetic_dataset), 0.003)
 ])
 
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
