@@ -358,7 +358,8 @@ weights, wsyn, fidelity, preserved_ratio = get_label_aware_hybrid_weights(
     feature_graph=feature_graph,
     target_col='Weekly_Sales',
     categorical_nodes=categorical_nodes,
-    ml_model_syn=ml_model_syn
+    ml_model_syn=ml_model_syn,
+    mixed_test=True
 )
 print(f"SCM Fidelity: {fidelity:.4f} | N_train: {len(train_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}")
 ml_model_hbr.fit(X_hybrid, y_hybrid, sample_weight=weights, categorical_feature=categorical_nodes)
