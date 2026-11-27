@@ -1,5 +1,6 @@
 import networkx as nx
 
+
 def get_walmart_definitions():
     # This dictionary defines a hierarchical grouping of observed variables into
     # semantically meaningful latent constructs for the Walmart dataset.
@@ -11,8 +12,9 @@ def get_walmart_definitions():
             "Is_Month_Start", "Is_Month_End",
             "Month_sin", "Month_cos",
             "DayOfWeek_sin", "DayOfWeek_cos",
-            "WeekOfYear_sin", "WeekOfYear_cos", ],
-        "Season": ["Season_sin", "Season_cos","Is_Summer"],
+            "WeekOfYear_sin", "WeekOfYear_cos",
+        ],
+        "Season": ["Season_sin", "Season_cos", "Is_Summer"],
         "City": ["city"],
         "Economy": ["Fuel_Price", "CPI", "Unemployment"],
         "Weather": [
@@ -25,7 +27,6 @@ def get_walmart_definitions():
     }
 
     # Specification of causal structure between macro-level variables
-
     # These directed edges encode domain-informed assumptions about the data-
     # generating process. They define a Directed Acyclic Graph (DAG) over latent groups.
     causal_edges_groups = [
@@ -106,11 +107,15 @@ def build_feature_graph(df_columns):
         ("Type", "Size"),
         ("Store", "Dept"),
         ("Type", "Dept"),
-        ("Size", "Dept")
+        ("Size", "Dept"),
+        ("Temperature", "temperature_min"),
+        ("Temperature", "temperature_max"),
     ]
     for src, tgt in hierarchical_edges:
         if src in df_columns and tgt in df_columns:
             feature_graph.add_edge(src, tgt)
+
+    assert nx.is_directed_acyclic_graph(feature_graph), "Graph contains a cycle!"
 
     print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
     print("\n--- FINAL FEATURE-LEVEL GRAPH NODES ---")

@@ -363,6 +363,17 @@ synthetic_dataset = generate_synthetic_data(
     target_col='Weekly_Sales',
     clip_cols=clip_cols
 )
+
+# --- DIAGNOSTIC: CHECK IMPOSSIBLE COMBINATIONS IN SYNTHETIC DATA ---
+real_store_meta = set(map(tuple, df[['city', 'Store', 'Type', 'Size']].astype(str).values))
+syn_store_meta = synthetic_dataset[['city', 'Store', 'Type', 'Size']].astype(str).apply(tuple, axis=1)
+print(f"% impossible Store metadata (city, Store, Type, Size) combos: {(~syn_store_meta.isin(real_store_meta)).mean() * 100:.3f}%")
+print(f"Max Types per Store in synthetic: {synthetic_dataset.groupby('Store')['Type'].nunique().max()}")
+
+real_store_dept = set(map(tuple, df[['Store', 'Dept']].astype(str).values))
+syn_store_dept = synthetic_dataset[['Store', 'Dept']].astype(str).apply(tuple, axis=1)
+print(f"% impossible (Store, Dept) combos: {(~syn_store_dept.isin(real_store_dept)).mean() * 100:.3f}%")
+
 real = set(map(tuple, df[['Store','Dept']].astype(str).values))
 syn = synthetic_dataset[['Store','Dept']].astype(str).apply(tuple, axis=1)
 print("% impossible Store-Dept combos:", (~syn.isin(real)).mean()*100)

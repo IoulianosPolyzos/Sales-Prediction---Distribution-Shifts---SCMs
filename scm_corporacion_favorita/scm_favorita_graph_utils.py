@@ -1,6 +1,7 @@
 import networkx as nx
 from lightgbm import LGBMClassifier
 
+
 def get_favorita_definitions():
     # This dictionary defines a hierarchical grouping of observed variables into
     # semantically meaningful latent constructs for the Favorita dataset.
@@ -24,7 +25,6 @@ def get_favorita_definitions():
     }
 
     # Specification of causal structure between macro-level variables
-
     # These directed edges encode domain-informed assumptions about the data-
     # generating process. They define a Directed Acyclic Graph (DAG) over latent groups.
     causal_edges_groups = [
@@ -76,20 +76,76 @@ def build_feature_graph(df_columns):
                 if src_col in df_columns and tgt_col in df_columns:
                     feature_graph.add_edge(src_col, tgt_col)
 
-    for holiday_var in causal_groups["Holidays"]:
-        if feature_graph.has_edge(holiday_var, "family"):
-            feature_graph.remove_edge(holiday_var, "family")
-        if feature_graph.has_edge(holiday_var, "class"):
-            feature_graph.remove_edge(holiday_var, "class")
-        if feature_graph.has_edge(holiday_var, "perishable"):
-            feature_graph.remove_edge(holiday_var, "perishable")
+    invalid_edges = []
 
-    if feature_graph.has_edge("family", "transactions"):
-        feature_graph.remove_edge("family", "transactions")
-    if feature_graph.has_edge("class", "transactions"):
-        feature_graph.remove_edge("class", "transactions")
-    if feature_graph.has_edge("perishable", "transactions"):
-        feature_graph.remove_edge("perishable", "transactions")
+    # 1. Date_Features -> Season: μόνο ετήσια/μηνιαία/εβδομαδιαία πρόοδος, όχι Year ή ημέρα εβδομάδας
+    non_seasonal_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End", "DayOfWeek_sin", "DayOfWeek_cos"]
+    for src in non_seasonal_dates:
+        for tgt in causal_groups["Season"]:
+            invalid_edges.append((src, tgt))
+
+    # 2. Date_Features -> Holidays: το Year και τα όρια/πρόοδος μήνα δεν καθορίζουν αργίες
+    non_holiday_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End"]
+    for src in non_holiday_dates:
+        for tgt in causal_groups["Holidays"]:
+            invalid_edges.append((src, tgt))
+    invalid_edges.extend([
+        ("DayOfWeek_sin", "Is_Christmas_Season"),
+        ("DayOfWeek_cos", "Is_Christmas_Season"),
+    ])
+
+    # 3. Date_Features & Location -> Economy: η ημέρα/αρχή μήνα δεν επηρεάζουν μακροοικονομικούς δείκτες
+    # και η τιμή πετρελαίου (dcoilwtico) είναι παγκόσμια, δεν καθορίζεται από city/state
+    micro_dates = ["DayOfWeek_sin", "DayOfWeek_cos", "Is_Month_Start", "Is_Month_End", "Month_Progress"]
+    for src in micro_dates:
+        for tgt in causal_groups["Economy"]:
+            invalid_edges.append((src, tgt))
+    invalid_edges.extend([
+        ("city", "dcoilwtico"),
+        ("state", "dcoilwtico"),
+    ])
+
+    # 4. Holidays & Store_Metadata -> Product_Features & Store_Activity:
+    # τα στατικά χαρακτηριστικά προϊόντος (family, class, perishable) δεν αλλάζουν από αργίες
+    # ούτε επηρεάζουν απευθείας τις συνολικές συναλλαγές (transactions) του καταστήματος
+    for holiday_var in causal_groups["Holidays"]:
+        invalid_edges.extend([
+            (holiday_var, "family"),
+            (holiday_var, "class"),
+            (holiday_var, "perishable"),
+        ])
+    for meta_var in ["store_type", "cluster"]:
+        invalid_edges.extend([
+            (meta_var, "class"),
+            (meta_var, "perishable"),
+        ])
+    invalid_edges.extend([
+        ("family", "transactions"),
+        ("class", "transactions"),
+        ("perishable", "transactions"),
+        ("state", "transactions"),
+    ])
+
+    for src, tgt in invalid_edges:
+        if feature_graph.has_edge(src, tgt):
+            feature_graph.remove_edge(src, tgt)
+
+    # 5. Εσωτερικές ιεραρχίες (αποτρέπουν αδύνατους συνδυασμούς στα συνθετικά δεδομένα)
+    hierarchical_edges = [
+        ("state", "city"),
+        ("city", "store_nbr"),
+        ("store_nbr", "store_type"),
+        ("store_nbr", "cluster"),
+        ("store_type", "cluster"),
+        ("family", "class"),
+        ("family", "perishable"),
+        ("class", "perishable"),
+    ]
+    for src, tgt in hierarchical_edges:
+        if src in df_columns and tgt in df_columns:
+            feature_graph.add_edge(src, tgt)
+
+    assert nx.is_directed_acyclic_graph(feature_graph), "Graph contains a cycle!"
 
     print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
     print("\n--- FINAL FEATURE-LEVEL GRAPH NODES ---")
