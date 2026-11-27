@@ -6,6 +6,8 @@ import warnings
 import sys
 from pathlib import Path
 
+import networkx as nx
+
 current_file = Path(__file__).resolve()
 
 project_root = current_file.parents[2]
@@ -200,6 +202,27 @@ except Exception as e:
     print(f"ERROR: Failed to fit SCM: {e}")
     raise
 
+from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
+
+# 1. Refit ενδιάμεσων κόμβων (π.χ. MarkDowns, Weather, Economy) στο target_domain_train
+# (αντικατέστησε "Holidays" με τον αντίστοιχο macro κόμβο κάθε split: "City", "Season", "Store_Features", "Weather")
+affected_groups = get_all_descendants(macro_graph, "Holidays")
+affected_feature_nodes = [col for g in affected_groups for col in causal_groups[g]]
+
+for node in nx.topological_sort(feature_graph):
+    if node in affected_feature_nodes and node != "Weekly_Sales":
+        try:
+            fit_causal_model_of_target(scm, node, target_domain_train)
+        except Exception:
+            pass
+
+# 2. Refit του Weekly_Sales με ενισχυμένη εκπροσώπηση του target_domain_train
+repeat_k = int(np.clip(round(np.sqrt(len(source_domain_train) / max(len(target_domain_train), 1)) * 2.0), 3, 10))
+balanced_sales_df = pd.concat(
+    [source_domain_train] + [target_domain_train] * repeat_k,
+    ignore_index=True
+)
+fit_causal_model_of_target(scm, "Weekly_Sales", balanced_sales_df)
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 
