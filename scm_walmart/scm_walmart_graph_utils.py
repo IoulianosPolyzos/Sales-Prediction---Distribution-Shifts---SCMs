@@ -71,4 +71,54 @@ def build_feature_graph(df_columns):
                 if src_col in df_columns and tgt_col in df_columns:
                     feature_graph.add_edge(src_col, tgt_col)
 
+    invalid_edges = []
+
+    non_seasonal_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End", "DayOfWeek_sin", "DayOfWeek_cos"]
+    for src in non_seasonal_dates:
+        for tgt in causal_groups["Season"]:
+            invalid_edges.append((src, tgt))
+
+    non_holiday_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End"]
+    for src in non_holiday_dates:
+        for tgt in causal_groups["Holidays"]:
+            invalid_edges.append((src, tgt))
+    invalid_edges.extend([
+        ("DayOfWeek_sin", "Is_Christmas_Season"),
+        ("DayOfWeek_cos", "Is_Christmas_Season"),
+    ])
+
+    micro_dates = ["DayOfWeek_sin", "DayOfWeek_cos", "Is_Month_Start", "Is_Month_End", "Month_Progress"]
+    for src in micro_dates:
+        for tgt in causal_groups["Economy"]:
+            invalid_edges.append((src, tgt))
+
+    for md in causal_groups["MarkDowns"]:
+        invalid_edges.append(("Dept", md))
+    invalid_edges.append(("city", "Dept"))
+
+    for src, tgt in invalid_edges:
+        if feature_graph.has_edge(src, tgt):
+            feature_graph.remove_edge(src, tgt)
+
+    hierarchical_edges = [
+        ("Store", "Type"),
+        ("Store", "Size"),
+        ("Type", "Size"),
+        ("Store", "Dept"),
+        ("Type", "Dept"),
+        ("Size", "Dept")
+    ]
+    for src, tgt in hierarchical_edges:
+        if src in df_columns and tgt in df_columns:
+            feature_graph.add_edge(src, tgt)
+
+    print(f"Feature-level graph: {feature_graph.number_of_nodes()} nodes, {feature_graph.number_of_edges()} edges")
+    print("\n--- FINAL FEATURE-LEVEL GRAPH NODES ---")
+    for node in feature_graph.nodes():
+        print(node)
+
+    print("\n--- FINAL FEATURE-LEVEL GRAPH EDGES ---")
+    for source, target in feature_graph.edges():
+        print(f"{source} -> {target}")
+
     return feature_graph, causal_groups, macro_graph
