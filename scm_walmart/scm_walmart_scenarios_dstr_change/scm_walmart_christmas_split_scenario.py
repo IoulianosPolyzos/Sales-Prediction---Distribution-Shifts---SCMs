@@ -186,7 +186,7 @@ print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 print("\nExecuting Intervention: Changing days to Christmas (Is_Christmas_Season = 1)...")
 print("\nExecuting Aligned Intervention: Changing days to Christmas (Is_Christmas_Season = 1) with correct Dates...")
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(len(target_df), 40000)
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 

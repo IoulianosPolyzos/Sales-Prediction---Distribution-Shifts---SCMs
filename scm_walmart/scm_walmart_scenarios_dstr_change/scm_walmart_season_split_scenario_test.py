@@ -195,7 +195,7 @@ except Exception as e:
 
 # %%
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(len(target_df), 40000)
 
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])

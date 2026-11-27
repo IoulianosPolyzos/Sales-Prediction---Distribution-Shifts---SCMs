@@ -200,7 +200,7 @@ except Exception as e:
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 
-num_synthetic_samples = len(target_df)
+num_synthetic_samples = min(len(target_df), 40000)
 
 # 1. Sample real rows from Target Domain (Stores 31-45) to maintain physical reality
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
