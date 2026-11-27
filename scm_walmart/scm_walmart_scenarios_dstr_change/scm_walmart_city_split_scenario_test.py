@@ -199,13 +199,29 @@ num_synthetic_samples = min(len(target_df), 40000)
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
 aligned_city = sampled_target['city'].values
+aligned_store = sampled_target['Store'].values
+aligned_type = sampled_target['Type'].values
+aligned_size = sampled_target['Size'].values
+aligned_dept = sampled_target['Dept'].values
 
 iter_city = itertools.cycle(aligned_city)
+iter_store = itertools.cycle(aligned_store)
+iter_type = itertools.cycle(aligned_type)
+iter_size = itertools.cycle(aligned_size)
+iter_dept = itertools.cycle(aligned_dept)
 
 def int_city(x): return next(iter_city)
+def int_store(x): return next(iter_store)
+def int_type(x): return next(iter_type)
+def int_size(x): return next(iter_size)
+def int_dept(x): return next(iter_dept)
 
 interventions_dict = {
-    'city': int_city
+    'city': int_city,
+    'Store': int_store,
+    'Type': int_type,
+    'Size': int_size,
+    'Dept': int_dept,
 }
 
 # 1. Synthetic Data Generation via Utility

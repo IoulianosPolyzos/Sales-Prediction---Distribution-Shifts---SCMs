@@ -284,17 +284,37 @@ num_synthetic_samples = len(target_df)
 # Sample FROM THE TARGETED REGION instead of the uniform adaptation set
 sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 
+aligned_city = sampled_target['city'].values
+aligned_store = sampled_target['Store'].values
+aligned_type = sampled_target['Type'].values
+aligned_size = sampled_target['Size'].values
+aligned_dept = sampled_target['Dept'].values
+
+iter_city = itertools.cycle(aligned_city)
+iter_store = itertools.cycle(aligned_store)
+iter_type = itertools.cycle(aligned_type)
+iter_size = itertools.cycle(aligned_size)
+iter_dept = itertools.cycle(aligned_dept)
+
+def int_city(x): return next(iter_city)
+def int_store(x): return next(iter_store)
+def int_type(x): return next(iter_type)
+def int_size(x): return next(iter_size)
+def int_dept(x): return next(iter_dept)
+
+interventions_dict = {
+    'city': int_city,
+    'Store': int_store,
+    'Type': int_type,
+    'Size': int_size,
+    'Dept': int_dept,
+}
 def create_intervention_func(values):
-    """Helper function to properly scope the iterator for DoWhy interventions"""
     iterator = itertools.cycle(values)
     return lambda x: next(iterator)
 
-# Base intervention for Domain Shift (City)
-aligned_city = sampled_target['city'].values
-interventions_dict = {
-    'city': create_intervention_func(aligned_city)
-}
 
+# --- DYNAMIC RULE-BASED SCM INTERVENTIONS ---
 print("\nApplying Direct SCM Interventions from Region Analysis Rules:")
 for feature in rule_features:
     if feature in feature_graph.nodes and feature not in interventions_dict:

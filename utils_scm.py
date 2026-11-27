@@ -226,12 +226,15 @@ def get_label_aware_hybrid_weights(
     imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
 
     if mixed_test:
-        coverage = float(np.clip((n_adapt / 10000.0) ** 1.5, 0.10, 1.0))
-        w_adapt = float(np.clip(1.5 + coverage * (1.5 + 0.22 * (imbalance - 1.0)), 1.5, 7.0))
+        if n_adapt >= 8000:
+            w_adapt = float(np.clip(5.5 + 0.10 * (imbalance - 1.0), 5.5, 7.5))
+            effective_adapt = min(float(n_adapt * w_adapt), 5000.0)
+            target_syn_mass = (0.35 * effective_adapt) * (fidelity ** 2)
+        else:
+            w_adapt = 1.25
+            target_syn_mass = (0.60 * n_adapt) * (fidelity ** 2)
 
-        effective_adapt = min(float(n_adapt * w_adapt), 5000.0)
-        target_syn_mass = (0.35 * effective_adapt) * (fidelity ** 2)
-        wsyn = float(np.clip(target_syn_mass / n_syn, 0.001, 0.20))
+        wsyn = float(np.clip(target_syn_mass / n_syn, 0.001, 0.25))
     else:
         w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
         target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
