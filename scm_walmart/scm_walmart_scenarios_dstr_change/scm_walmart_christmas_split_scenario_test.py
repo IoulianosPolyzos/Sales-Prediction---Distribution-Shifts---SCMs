@@ -175,6 +175,7 @@ except Exception as e:
     raise
 
 #%%
+# %%
 print("PART 4 & 5: CAUSAL GRAPH ANALYSIS & BUILDING")
 
 # Build the base feature graph and retrieve structural groups using the external utility
@@ -192,34 +193,15 @@ scm = gcm.StructuralCausalModel(feature_graph)
 try:
     # Set up the internal causal mechanisms (LGBM) using the external utility
     setup_mechanisms(scm, feature_graph, classifier_nodes, categorical_nodes, lgb_params)
-    print("Fitting SCM on Dtrain (90% Normal Days + 10% Christmas Days)...")
+    print("Fitting SCM on Dtrain (90% Source Cities + 10% Target Cities)...")
 
     # The SCM is trained directly on the mixed dataset, automatically
-    # learning regular and holiday behaviors simultaneously.
+    # learning source and target city behaviors simultaneously.
     gcm.fit(scm, train_df)
     print("✓ Mixed SCM fit complete")
 except Exception as e:
     print(f"ERROR: Failed to fit SCM: {e}")
     raise
-
-from dowhy.gcm.fitting_sampling import fit_causal_model_of_target
-
-affected_groups = get_all_descendants(macro_graph, "Holidays")
-affected_feature_nodes = [col for g in affected_groups for col in causal_groups[g]]
-
-for node in nx.topological_sort(feature_graph):
-    if node in affected_feature_nodes and node != "Weekly_Sales":
-        try:
-            fit_causal_model_of_target(scm, node, target_domain_train)
-        except Exception:
-            pass
-
-repeat_k = int(np.clip(round(np.sqrt(len(source_domain_train) / max(len(target_domain_train), 1)) * 2.0), 3, 10))
-balanced_sales_df = pd.concat(
-    [source_domain_train] + [target_domain_train] * repeat_k,
-    ignore_index=True
-)
-fit_causal_model_of_target(scm, "Weekly_Sales", balanced_sales_df)
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 

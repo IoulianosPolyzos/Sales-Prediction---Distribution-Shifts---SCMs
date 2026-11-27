@@ -226,13 +226,11 @@ def get_label_aware_hybrid_weights(
     imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
 
     if mixed_test:
-        # Mixed Test (10% Source + 90% Target): ισχυρό reweighting για την αντιστροφή 10/90 -> 90/10
         w_adapt = float(np.clip(2.5 + 0.25 * (imbalance - 1.0), 3.5, 7.5))
         effective_adapt = min(float(n_adapt * w_adapt), 6000.0)
         target_syn_mass = (0.40 * effective_adapt) * (fidelity ** 2)
         wsyn = float(np.clip(target_syn_mass / n_syn, 0.001, 0.25))
     else:
-        # Pure Target Test (Scenario 2 - 100% OOD Target): ισχυρή ενίσχυση target domain
         w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
         target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
         wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.50))
