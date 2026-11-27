@@ -226,26 +226,15 @@ def get_label_aware_hybrid_weights(
     imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
 
     if mixed_test:
-        # Έλεγχος αν το split διαχωρίζει ξένες οντότητες (Store, City, Type) ή κοινές (Season, Holiday, Weather)
-        entity_cols = [c for c in ["Store", "store_nbr"] if c in source_df.columns and c in adaptation_df.columns]
-        disjoint_entities = False
-        if entity_cols:
-            col = entity_cols[0]
-            src_ents = set(source_df[col].astype(str).unique())
-            tgt_ents = set(adaptation_df[col].astype(str).unique())
-            disjoint_entities = len(src_ents & tgt_ents) == 0
-
-        if disjoint_entities and imbalance > 2.0:
-            # Ξένες οντότητες με μεγάλη ανισορροπία (Store, City): ενίσχυση target φύλλων
-            w_adapt = float(np.clip(2.0 + 0.25 * (imbalance - 1.0), 3.5, 6.5))
-            target_syn_mass = 250.0 * (fidelity ** 3)
+        if n_adapt >= 8000:
+            w_adapt = float(np.clip(8.0 + 0.18 * (imbalance - 1.0), 8.0, 12.0))
+            target_syn_mass = 1500.0 * (fidelity ** 2)
         else:
-            # Κοινές οντότητες (Season, Christmas, Holiday, Weather) ή ισορροπημένο split (Type):
-            # ήπιο βάρος ώστε τα συνθετικά να λειτουργούν καθαρά ως Bayesian prior smoothing
-            w_adapt = 1.05
-            target_syn_mass = 180.0 * (fidelity ** 3)
+           
+            w_adapt = 3.0
+            target_syn_mass = (8.0 * n_adapt) * (fidelity ** 2)
 
-        wsyn = float(np.clip(target_syn_mass / n_syn, 0.001, 0.05))
+        wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.50))
     else:
         w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
         target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
@@ -257,7 +246,6 @@ def get_label_aware_hybrid_weights(
         np.full(n_syn, wsyn, dtype=np.float64)
     ])
     return weights, wsyn, fidelity, active_ratio
-
 def evaluate_sales_on_holdout(model_scm, feature_graph, eval_df, label, target_col):
     parents = sorted(list(feature_graph.predecessors(target_col)))
     sales_mechanism = model_scm.causal_mechanism(target_col)
