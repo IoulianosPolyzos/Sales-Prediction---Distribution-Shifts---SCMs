@@ -279,7 +279,7 @@ print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 print("\nExecuting Intervention: Changing days to Christmas (Is_Christmas_Season = 1)...")
 print("Executing Aligned Intervention: Changing days to Christmas (Is_Christmas_Season = 1) with correct Dates...")
 
-num_synthetic_samples = min(500000, len(target_df))
+num_synthetic_samples = min(150000, len(target_df))
 
 # Sample FROM THE TARGETED REGION instead of the uniform adaptation set
 sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])

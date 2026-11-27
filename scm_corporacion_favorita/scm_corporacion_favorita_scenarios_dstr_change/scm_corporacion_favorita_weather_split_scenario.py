@@ -189,7 +189,7 @@ except Exception as e:
 # %%
 print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 
-num_synthetic_samples = min(1000000, len(target_df))
+num_synthetic_samples = min(150000, len(target_df))
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])
 

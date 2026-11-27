@@ -258,7 +258,7 @@ if len(targeted_adaptation_df) == 0:
 # %%
 print("\nPART 8 & 9: SYNTHETIC AND HYBRID DATA GENERATION")
 
-num_synthetic_samples = min(1000000, len(target_df))
+num_synthetic_samples = min(150000, len(target_df))
 
 # Sample FROM THE TARGETED REGION instead of the uniform target domain train set
 sampled_target = targeted_adaptation_df.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])

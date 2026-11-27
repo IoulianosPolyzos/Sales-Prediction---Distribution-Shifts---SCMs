@@ -205,7 +205,7 @@ print("PART 7 & 8: SYNTHETIC AND HYBRID DATA GENERATION")
 #    The SCM is thus forced to generate counterfactuals around 100% realistic,
 #    chronologically coherent dates.
 
-num_synthetic_samples = min(1000000, len(target_df))
+num_synthetic_samples = min(150000, len(target_df))
 
 
 sampled_target = target_domain_train.sample(n=num_synthetic_samples, replace=True, random_state=CONFIG['random_seed'])

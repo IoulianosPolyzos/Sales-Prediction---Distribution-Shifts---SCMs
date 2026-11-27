@@ -78,13 +78,11 @@ def build_feature_graph(df_columns):
 
     invalid_edges = []
 
-    # 1. Date_Features -> Season: μόνο ετήσια/μηνιαία/εβδομαδιαία πρόοδος, όχι Year ή ημέρα εβδομάδας
     non_seasonal_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End", "DayOfWeek_sin", "DayOfWeek_cos"]
     for src in non_seasonal_dates:
         for tgt in causal_groups["Season"]:
             invalid_edges.append((src, tgt))
 
-    # 2. Date_Features -> Holidays: το Year και τα όρια/πρόοδος μήνα δεν καθορίζουν αργίες
     non_holiday_dates = ["Year", "Month_Progress", "Is_Month_Start", "Is_Month_End"]
     for src in non_holiday_dates:
         for tgt in causal_groups["Holidays"]:
@@ -94,8 +92,7 @@ def build_feature_graph(df_columns):
         ("DayOfWeek_cos", "Is_Christmas_Season"),
     ])
 
-    # 3. Date_Features & Location -> Economy: η ημέρα/αρχή μήνα δεν επηρεάζουν μακροοικονομικούς δείκτες
-    # και η τιμή πετρελαίου (dcoilwtico) είναι παγκόσμια, δεν καθορίζεται από city/state
+
     micro_dates = ["DayOfWeek_sin", "DayOfWeek_cos", "Is_Month_Start", "Is_Month_End", "Month_Progress"]
     for src in micro_dates:
         for tgt in causal_groups["Economy"]:
@@ -105,9 +102,7 @@ def build_feature_graph(df_columns):
         ("state", "dcoilwtico"),
     ])
 
-    # 4. Holidays & Store_Metadata -> Product_Features & Store_Activity:
-    # τα στατικά χαρακτηριστικά προϊόντος (family, class, perishable) δεν αλλάζουν από αργίες
-    # ούτε επηρεάζουν απευθείας τις συνολικές συναλλαγές (transactions) του καταστήματος
+
     for holiday_var in causal_groups["Holidays"]:
         invalid_edges.extend([
             (holiday_var, "family"),
@@ -126,11 +121,17 @@ def build_feature_graph(df_columns):
         ("state", "transactions"),
     ])
 
+    invalid_edges.extend([
+        ("store_nbr", "class"),
+        ("store_nbr", "perishable"),
+    ])
+
     for src, tgt in invalid_edges:
         if feature_graph.has_edge(src, tgt):
             feature_graph.remove_edge(src, tgt)
 
-    # 5. Εσωτερικές ιεραρχίες (αποτρέπουν αδύνατους συνδυασμούς στα συνθετικά δεδομένα)
+
+
     hierarchical_edges = [
         ("state", "city"),
         ("city", "store_nbr"),
