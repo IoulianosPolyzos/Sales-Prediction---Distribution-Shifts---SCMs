@@ -37,7 +37,7 @@ from utils_scm import (
     setup_mechanisms,
     generate_synthetic_data,
     create_hybrid_dataset,
-    run_whyshift_region_analysis, get_mixed_setting_hybrid_weights
+    run_whyshift_region_analysis, get_label_aware_hybrid_weights
 )
 
 # 2. scm_walmart_graph_utils is located one level up
@@ -301,8 +301,10 @@ print(f"  - R²: {r2:.2f}")
 print(f"✓ Synthetic Dataset Shape: {synthetic_dataset.shape}")
 
 # 2. Hybrid Data Construction via Utility
+real_train_df = pd.concat([source_domain_train, target_domain_train], ignore_index=True)
+
 hybrid_dataset = create_hybrid_dataset(
-    source_df=train_df,
+    source_df=real_train_df,
     synthetic_dataset=synthetic_dataset,
     original_df=df,
     classifier_nodes=classifier_nodes,
@@ -321,12 +323,13 @@ for col in classifier_nodes:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
 ml_model_hbr = LGBMRegressor(**lgb_params)
-weights, wsyn, fidelity = get_mixed_setting_hybrid_weights(
-    train_df=train_df,
-    source_domain_train=source_domain_train,
-    target_domain_train=target_domain_train,
+weights, wsyn, fidelity, preserved_ratio = get_label_aware_hybrid_weights(
+    source_df=source_domain_train,
+    adaptation_df=target_domain_train,
     synthetic_df=synthetic_dataset,
+    feature_graph=feature_graph,
     target_col='Weekly_Sales',
+    categorical_nodes=categorical_nodes,
     ml_model_syn=ml_model_syn
 )
 print(f"SCM Fidelity: {fidelity:.4f} | N_train: {len(train_df)} | N_syn: {len(synthetic_dataset)} | wsyn: {wsyn:.5f}")
