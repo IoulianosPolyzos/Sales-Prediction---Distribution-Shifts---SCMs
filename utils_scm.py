@@ -226,15 +226,25 @@ def get_label_aware_hybrid_weights(
     imbalance = np.clip(n_src / n_adapt, 1.0, 25.0)
 
     if mixed_test:
-        if n_adapt >= 8000:
-            w_adapt = float(np.clip(8.0 + 0.18 * (imbalance - 1.0), 8.0, 12.0))
-            target_syn_mass = 1500.0 * (fidelity ** 2)
-        else:
-           
-            w_adapt = 3.0
-            target_syn_mass = (8.0 * n_adapt) * (fidelity ** 2)
+        store_col = "Store" if "Store" in source_df.columns else (
+            "store_nbr" if "store_nbr" in source_df.columns else None)
+        disjoint_stores = False
+        if store_col is not None and store_col in adaptation_df.columns:
+            src_stores = set(source_df[store_col].astype(str).unique())
+            tgt_stores = set(adaptation_df[store_col].astype(str).unique())
+            disjoint_stores = len(src_stores & tgt_stores) == 0
 
-        wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.50))
+        if disjoint_stores:
+            if imbalance > 2.0:
+                w_adapt = float(np.clip(6.0 + 0.18 * (imbalance - 1.0), 6.5, 10.5))
+            else:
+                w_adapt = 3.2
+            target_syn_mass = 1200.0 * (fidelity ** 2)
+            wsyn = float(np.clip(target_syn_mass / n_syn, 0.002, 0.05))
+        else:
+            w_adapt = 1.05
+            target_syn_mass = 80.0 * (fidelity ** 3)
+            wsyn = float(np.clip(target_syn_mass / n_syn, 0.0005, 0.005))
     else:
         w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
         target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
