@@ -7,6 +7,14 @@ from whyshift.region_analysis import shared_reweight
 from whyshift_reg.disde_reg import *
 import sys
 from pathlib import Path
+
+import yaml
+config_path = project_root / "whyshift_reg" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
+
 current_file = Path(__file__).resolve()
 project_root = current_file.parents[2]
 

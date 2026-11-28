@@ -12,6 +12,12 @@ project_root = current_file.parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+import yaml
+config_path = project_root / "whyshift_reg" / "config.yaml"
+with open(config_path, "r") as f:
+    config = yaml.safe_load(f)
+
+lgb_params = config["lgb_params"]
 
 
 
