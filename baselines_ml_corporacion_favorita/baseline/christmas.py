@@ -59,13 +59,12 @@ y_target = holdout_test_df[TARGET]
 
 lgb_params = {
     'n_estimators': 300,
-    'learning_rate': 0.05,
+    'learning_rate': 0.1,
     'num_leaves': 62,
     'max_depth': 20,
     'verbose': -1,
     'n_jobs': 1
 }
-
 model = LGBMRegressor(**lgb_params)
 print(" Training LightGBM on source domain...")
 model.fit(X_source, y_source, categorical_feature=cols_to_encode)
