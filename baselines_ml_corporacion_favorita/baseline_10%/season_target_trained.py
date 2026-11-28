@@ -74,7 +74,8 @@ lgb_params = {
     'max_depth': 20,
     'verbose': -1,
     'n_jobs': 1
-}model = LGBMRegressor(**lgb_params)
+}
+model = LGBMRegressor(**lgb_params)
 
 print(" Training LightGBM on 10% target domain...")
 model.fit(X_target_train, y_target_train, categorical_feature=cols_to_encode)
