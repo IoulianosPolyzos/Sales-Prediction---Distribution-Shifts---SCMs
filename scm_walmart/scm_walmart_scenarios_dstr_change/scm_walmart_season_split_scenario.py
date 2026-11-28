@@ -298,7 +298,7 @@ for col in classifier_nodes:
     if col in X_test.columns:
         X_test[col] = pd.Categorical(X_test[col].astype(str), categories=X_hybrid[col].cat.categories)
 print("\nTraining ML Model on Hybrid Dataset...")
-ml_model_hbr = LGBMRegressor(**lgb_params)
+ml_model_hbr = LGBMRegressor(**{**lgb_params, "min_child_weight": float(lgb_params.get("min_child_samples", 20))})
 ml_model_hbr.fit(X_hybrid, y_hybrid, categorical_feature=categorical_nodes)
 
 print("\nEvaluation of Hybrid Model on Mixed Test Set ...")

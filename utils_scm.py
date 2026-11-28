@@ -238,13 +238,13 @@ def get_label_aware_hybrid_weights(
             if imbalance > 2.0:
                 w_adapt = float(np.clip(6.0 + 0.18 * (imbalance - 1.0), 6.5, 10.5))
             else:
-                w_adapt = 3.2
+                w_adapt = 3.5
             target_syn_mass = 1200.0 * (fidelity ** 2)
-            wsyn = float(np.clip(target_syn_mass / n_syn, 0.002, 0.05))
+            wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.10))
         else:
-            w_adapt = 1.05
-            target_syn_mass = 80.0 * (fidelity ** 3)
-            wsyn = float(np.clip(target_syn_mass / n_syn, 0.0005, 0.005))
+            w_adapt = 1.35 if imbalance <= 8.0 else 1.05
+            target_syn_mass = 2000.0 * (fidelity ** 2)
+            wsyn = float(np.clip(target_syn_mass / n_syn, 0.005, 0.08))
     else:
         w_adapt = float(np.clip(1.0 + 0.35 * (imbalance - 1.0), 1.0, 6.0))
         target_syn_mass = (0.35 * n_adapt * w_adapt) * (fidelity ** 1.5)
